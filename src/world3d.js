@@ -40,8 +40,8 @@
 
     runtime.config = config;
     runtime.scene = new THREE.Scene();
-    runtime.scene.background = new THREE.Color(0x050506);
-    runtime.scene.fog = new THREE.FogExp2(0x060404, 0.052);
+    runtime.scene.background = new THREE.Color(0x100c0a);
+    runtime.scene.fog = new THREE.FogExp2(0x16100d, 0.03);
 
     runtime.camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.03, 140);
     runtime.renderer = new THREE.WebGLRenderer({
@@ -88,13 +88,13 @@
   }
 
   function createFallbackMaterials() {
-    runtime.materials.wall = standard("#4a302b", 0.18, 0.92);
-    runtime.materials.door = standard("#2b1810", 0.72, 0.82);
-    runtime.materials.floor = standard("#35251b", 0.78, 0.88);
-    runtime.materials.basement = standard("#26302b", 0.92, 0.96);
-    runtime.materials.ceiling = standard("#1a1411", 0.94, 0.94);
-    runtime.materials.darkWood = standard("#2b1b12", 0.78, 0.9);
-    runtime.materials.wornWood = standard("#5a3a24", 0.72, 0.88);
+    runtime.materials.wall = standard("#65453a", 0.16, 0.88, "#120807", 0.03);
+    runtime.materials.door = standard("#4a2a1c", 0.5, 0.78, "#120704", 0.04);
+    runtime.materials.floor = standard("#493323", 0.62, 0.84, "#100906", 0.02);
+    runtime.materials.basement = standard("#35443d", 0.76, 0.9, "#07110e", 0.03);
+    runtime.materials.ceiling = standard("#29201b", 0.82, 0.9, "#090504", 0.02);
+    runtime.materials.darkWood = standard("#3f2819", 0.62, 0.84, "#0d0503", 0.02);
+    runtime.materials.wornWood = standard("#725033", 0.55, 0.82, "#120804", 0.02);
     runtime.materials.fabric = standard("#3f2b30", 0.86, 0.98);
     runtime.materials.metal = standard("#a7a090", 0.32, 0.52);
     runtime.materials.paper = standard("#e0c894", 0.9, 0.98);
@@ -174,22 +174,25 @@
   }
 
   function addLights() {
-    const hemi = new THREE.HemisphereLight(0x516070, 0x170807, 0.22);
+    const ambient = new THREE.AmbientLight(0x9a7562, 0.32);
+    runtime.scene.add(ambient);
+
+    const hemi = new THREE.HemisphereLight(0x8ea0b3, 0x3a2018, 0.56);
     runtime.scene.add(hemi);
 
-    const moon = new THREE.DirectionalLight(0x8fa7d8, 0.32);
+    const moon = new THREE.DirectionalLight(0xb6c7ff, 0.52);
     moon.position.set(-12, 18, 11);
     moon.castShadow = runtime.quality.shadows;
     moon.shadow.mapSize.set(1024, 1024);
     runtime.scene.add(moon);
 
-    addPointLight(4.9, 2.2, 0xffd568, 1.6, 8);
-    addPointLight(16.35, 2.55, 0xf0c473, 1.35, 7);
-    addPointLight(4.35, 8.55, 0xf7bf5a, 1.25, 7);
-    addPointLight(10.5, 5.5, 0xb96a3a, 0.72, 10);
-    addPointLight(10.5, 18.5, 0x6c8f76, 0.7, 10);
-    addPointLight(10.5, 11.6, 0x9b1111, 1.15, 8);
-    addPointLight(16.2, 18.4, 0x7f88ff, 0.82, 7);
+    addPointLight(4.9, 2.2, 0xffd568, 2.1, 9);
+    addPointLight(16.35, 2.55, 0xf0c473, 1.8, 8);
+    addPointLight(4.35, 8.55, 0xf7bf5a, 1.65, 8);
+    addPointLight(10.5, 5.5, 0xb96a3a, 1.05, 11);
+    addPointLight(10.5, 18.5, 0x6c8f76, 1.0, 11);
+    addPointLight(10.5, 11.6, 0x9b1111, 1.45, 9);
+    addPointLight(16.2, 18.4, 0x7f88ff, 1.12, 8);
 
     runtime.muzzleLight = new THREE.PointLight(0xffc46d, 0, 8, 2);
     runtime.camera.add(runtime.muzzleLight);
@@ -298,16 +301,27 @@
     const group = new THREE.Group();
     const pos = toWorld(door.x + 0.5, door.y + 0.5, WALL_HEIGHT / 2);
     group.position.set(pos.x, pos.y, pos.z);
-    const panel = box(TILE * 0.78, WALL_HEIGHT * 0.86, 0.22, runtime.materials.door, 0, 0, 0);
+    const vertical = doorOrientation(door) === "vertical";
+    const panel = box(vertical ? 0.22 : TILE * 0.78, WALL_HEIGHT * 0.86, vertical ? TILE * 0.78 : 0.22, runtime.materials.door, 0, 0, 0);
     panel.castShadow = true;
     group.add(panel);
-    group.add(box(TILE * 0.86, 0.08, 0.28, runtime.materials.darkWood, 0, WALL_HEIGHT * 0.28, 0));
-    group.add(box(TILE * 0.86, 0.08, 0.28, runtime.materials.darkWood, 0, -WALL_HEIGHT * 0.12, 0));
+    group.add(box(vertical ? 0.28 : TILE * 0.86, 0.08, vertical ? TILE * 0.86 : 0.28, runtime.materials.darkWood, 0, WALL_HEIGHT * 0.28, 0));
+    group.add(box(vertical ? 0.28 : TILE * 0.86, 0.08, vertical ? TILE * 0.86 : 0.28, runtime.materials.darkWood, 0, -WALL_HEIGHT * 0.12, 0));
     const knob = new THREE.Mesh(new THREE.SphereGeometry(0.08, 14, 10), runtime.materials.key);
-    knob.position.set(TILE * 0.25, 0.05, -0.15);
+    knob.position.set(vertical ? -0.15 : TILE * 0.25, 0.05, vertical ? TILE * 0.25 : -0.15);
     knob.castShadow = true;
     group.add(knob);
+    group.userData.closedRotationY = 0;
     return group;
+  }
+
+  function doorOrientation(door) {
+    const map = runtime.config.map;
+    const left = map[door.y]?.[door.x - 1] && map[door.y][door.x - 1] !== "#";
+    const right = map[door.y]?.[door.x + 1] && map[door.y][door.x + 1] !== "#";
+    const up = map[door.y - 1]?.[door.x] && map[door.y - 1][door.x] !== "#";
+    const down = map[door.y + 1]?.[door.x] && map[door.y + 1][door.x] !== "#";
+    return Number(left) + Number(right) > Number(up) + Number(down) ? "vertical" : "horizontal";
   }
 
   function addProps() {
@@ -1358,14 +1372,13 @@
       });
     }
 
-    runtime.scene.fog.density = 0.048 + (state.scare || 0) * 0.035;
+    runtime.scene.fog.density = 0.026 + (state.scare || 0) * 0.02;
   }
 
   function updateDoors(doors) {
     for (const [id, mesh] of runtime.meshes.doors.entries()) {
       mesh.visible = !doors[id]?.opened;
-      if (doors[id]?.opened) mesh.rotation.y = Math.min(mesh.rotation.y + 0.05, Math.PI * 0.5);
-      else mesh.rotation.y *= 0.85;
+      mesh.rotation.y = mesh.userData.closedRotationY || 0;
     }
   }
 

@@ -68,13 +68,13 @@ const MAX_DEPTH = 18;
 const INTERACTION_DISTANCE = 1.55;
 
 const palette = {
-  ceiling: "#07070a",
-  floor: "#16120f",
-  floorFar: "#2b241d",
-  wall: "#564332",
-  wallDark: "#241b16",
+  ceiling: "#15100e",
+  floor: "#2a1e17",
+  floorFar: "#49382a",
+  wall: "#735743",
+  wallDark: "#3d2c22",
   trim: "#100d0b",
-  door: "#251711",
+  door: "#4a2a1c",
   basement: "#17201d",
   clue: "#ffd568",
   key: "#ffbf3e",
@@ -842,7 +842,7 @@ function textureColumn(hit, corrected, wallHeight, screenX, screenY, shade, rayW
 }
 
 function worldLightAt(x, y, distance) {
-  let light = Math.max(0, 1 - distance / MAX_DEPTH) * 0.35;
+  let light = 0.18 + Math.max(0, 1 - distance / MAX_DEPTH) * 0.48;
   const sources = frameLightSources;
   if (!sources.length) return light;
   for (const source of sources) {
@@ -854,18 +854,18 @@ function worldLightAt(x, y, distance) {
 
 function buildFrameLightSources() {
   const sources = [
-    { x: spawnPoint.x, y: spawnPoint.y, power: 0.78, radius: 4.2 },
-    { x: 10.5, y: 5.5, power: 0.44, radius: 4.8 },
-    { x: 10.5, y: 18.5, power: 0.32, radius: 5.2 }
+    { x: spawnPoint.x, y: spawnPoint.y, power: 1.02, radius: 5.0 },
+    { x: 10.5, y: 5.5, power: 0.62, radius: 5.6 },
+    { x: 10.5, y: 18.5, power: 0.5, radius: 5.8 }
   ];
   for (const obj of objects) {
     if (obj.hidden || obj.collected) continue;
-    const basePower = obj.type === "key" ? 0.95 : obj.type === "switch" ? 0.72 : obj.type === "tool" ? 0.58 : obj.type === "talisman" ? 0.62 : 0.75;
-    sources.push({ x: obj.x, y: obj.y, power: basePower, radius: obj.type === "switch" ? 3.9 : 3.2 });
+    const basePower = obj.type === "key" ? 1.1 : obj.type === "switch" ? 0.9 : obj.type === "tool" ? 0.76 : obj.type === "talisman" ? 0.78 : 0.92;
+    sources.push({ x: obj.x, y: obj.y, power: basePower, radius: obj.type === "switch" ? 4.4 : 3.8 });
   }
   for (const character of activeCharacters()) {
-    const power = character.kind === "butcherPig" ? 1.26 : character.kind === "daddyPig" || character.kind === "grandpaPig" ? 1.08 : 0.86;
-    sources.push({ x: character.x, y: character.y, power, radius: character.kind === "butcherPig" ? 4.4 : 3.7 });
+    const power = character.kind === "butcherPig" ? 1.35 : character.kind === "daddyPig" || character.kind === "grandpaPig" ? 1.14 : 0.96;
+    sources.push({ x: character.x, y: character.y, power, radius: character.kind === "butcherPig" ? 4.8 : 4.1 });
   }
   return sources;
 }
@@ -885,9 +885,9 @@ function drawScene(time) {
   ctx.translate(shakeX, shakeY);
 
   const sky = ctx.createLinearGradient(0, 0, 0, half + bob);
-  sky.addColorStop(0, "#030302");
-  sky.addColorStop(0.38, "#0b0907");
-  sky.addColorStop(1, "#1d1711");
+  sky.addColorStop(0, "#120d0b");
+  sky.addColorStop(0.38, "#1c1511");
+  sky.addColorStop(1, "#33251b");
   ctx.fillStyle = sky;
   ctx.fillRect(-24, -24, width + 48, half + bob + 24);
   drawCeiling(width, half + bob, time);
@@ -970,8 +970,8 @@ function drawTexturedFloor(width, height, horizon, time) {
   ctx.restore();
 
   const shadow = ctx.createLinearGradient(0, horizon, 0, height);
-  shadow.addColorStop(0, "rgba(0,0,0,0.28)");
-  shadow.addColorStop(1, "rgba(0,0,0,0.62)");
+  shadow.addColorStop(0, "rgba(0,0,0,0.16)");
+  shadow.addColorStop(1, "rgba(0,0,0,0.42)");
   ctx.fillStyle = shadow;
   ctx.fillRect(-24, horizon, width + 48, height - horizon + 24);
 
@@ -1033,11 +1033,11 @@ function drawAtmosphere(width, height, time) {
   ctx.save();
   ctx.globalCompositeOperation = "screen";
   if (performanceProfile.lite) {
-    ctx.fillStyle = "rgba(120, 96, 64, 0.035)";
+    ctx.fillStyle = "rgba(180, 132, 86, 0.06)";
   } else {
     const lamp = ctx.createRadialGradient(width * 0.52, height * 0.42, 10, width * 0.52, height * 0.42, width * 0.62);
-    lamp.addColorStop(0, "rgba(255, 202, 126, 0.11)");
-    lamp.addColorStop(0.45, "rgba(120, 96, 64, 0.055)");
+    lamp.addColorStop(0, "rgba(255, 212, 145, 0.16)");
+    lamp.addColorStop(0.45, "rgba(166, 121, 78, 0.08)");
     lamp.addColorStop(1, "rgba(0, 0, 0, 0)");
     ctx.fillStyle = lamp;
   }
@@ -1074,7 +1074,7 @@ function drawFlashlight(width, height, time) {
   const jitterX = Math.sin(time * 0.006) * 10 + Math.sin(time * 0.021) * 4;
   const jitterY = Math.cos(time * 0.005) * 6;
   if (performanceProfile.lite) {
-    ctx.fillStyle = "rgba(255, 232, 198, 0.055)";
+    ctx.fillStyle = "rgba(255, 232, 198, 0.09)";
   } else {
     const beam = ctx.createRadialGradient(
       width * 0.5 + jitterX,
@@ -1084,9 +1084,9 @@ function drawFlashlight(width, height, time) {
       height * 0.5 + jitterY,
       Math.max(width, height) * 0.54
     );
-    beam.addColorStop(0, "rgba(255, 232, 198, 0.24)");
-    beam.addColorStop(0.28, "rgba(255, 190, 130, 0.095)");
-    beam.addColorStop(0.62, "rgba(140, 112, 76, 0.04)");
+    beam.addColorStop(0, "rgba(255, 232, 198, 0.32)");
+    beam.addColorStop(0.28, "rgba(255, 196, 136, 0.14)");
+    beam.addColorStop(0.62, "rgba(160, 124, 82, 0.065)");
     beam.addColorStop(1, "rgba(0,0,0,0)");
     ctx.fillStyle = beam;
   }
@@ -1100,8 +1100,8 @@ function drawFearFrame(width, height, time) {
   const fear = nearest ? Math.max(0, 1 - nearest.distance / 8) : 0;
   const vignette = ctx.createRadialGradient(width / 2, height / 2, width * 0.1, width / 2, height / 2, width * 0.72);
   vignette.addColorStop(0, "rgba(0,0,0,0)");
-  vignette.addColorStop(0.58, `rgba(25, 13, 7, ${0.12 + fear * 0.16})`);
-  vignette.addColorStop(1, `rgba(0,0,0, ${0.58 + fear * 0.22})`);
+  vignette.addColorStop(0.58, `rgba(25, 13, 7, ${0.06 + fear * 0.12})`);
+  vignette.addColorStop(1, `rgba(0,0,0, ${0.34 + fear * 0.22})`);
   ctx.fillStyle = vignette;
   ctx.fillRect(0, 0, width, height);
 
