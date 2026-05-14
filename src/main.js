@@ -84,7 +84,16 @@ const palette = {
 
 const assets = {
   atlas: loadAsset("src/assets/interior-atlas.png"),
-  enemy: loadAsset("src/assets/enemy-sprite.png")
+  enemy: loadAsset("src/assets/enemy-sprite.png"),
+  characters: {
+    george: loadAsset("src/assets/characters/george.png"),
+    grandpaPig: loadAsset("src/assets/characters/grandpa-pig.png"),
+    mummyPig: loadAsset("src/assets/characters/mummy-pig.png"),
+    daddyPig: loadAsset("src/assets/characters/daddy-pig.png"),
+    grannyPig: loadAsset("src/assets/characters/granny-pig.png"),
+    peppa: loadAsset("src/assets/characters/peppa.png"),
+    butcherPig: loadAsset("src/assets/enemy-sprite.png")
+  }
 };
 
 const texturePatterns = {
@@ -1247,6 +1256,7 @@ function drawEnemy(x, horizon, size, distance, time, character = enemy) {
   const alpha = Math.max(0.28, 1 - distance / 14);
   const bob = Math.sin(time * 0.008) * size * 0.06;
   const profile = pigSpriteProfile(character.kind);
+  const sprite = characterAssetImage(character.kind);
   ctx.save();
   ctx.globalAlpha = alpha;
   ctx.translate(x, horizon + size * 0.22 + bob);
@@ -1268,9 +1278,30 @@ function drawEnemy(x, horizon, size, distance, time, character = enemy) {
   ctx.ellipse(0, size * 0.62, size * 0.52, size * 0.14, 0, 0, Math.PI * 2);
   ctx.fill();
 
-  drawPigFamilyFigure(size, profile, character, time);
+  if (sprite?.loaded) drawCharacterAssetSprite(sprite, size, character, time);
 
   ctx.restore();
+}
+
+function characterAssetImage(kind) {
+  return assets.characters[kind] || assets.characters.peppa;
+}
+
+function drawCharacterAssetSprite(sprite, size, character, time) {
+  const height = size * (character.kind === "butcherPig" ? 1.72 : 1.55);
+  const width = height * (sprite.naturalWidth / sprite.naturalHeight);
+  ctx.drawImage(sprite, -width / 2, -height * 0.58, width, height);
+  if (character.bloodSplatterUntil && performance.now() < character.bloodSplatterUntil) {
+    const spray = (character.bloodSplatterUntil - performance.now()) / 700;
+    ctx.fillStyle = `rgba(142, 0, 0, ${Math.min(0.85, spray)})`;
+    for (let i = 0; i < 9; i += 1) {
+      const angle = time * 0.006 + i * 1.7;
+      const radius = size * (0.18 + (i % 4) * 0.08);
+      ctx.beginPath();
+      ctx.arc(Math.cos(angle) * radius, -size * 0.28 + Math.sin(angle) * radius * 0.55, size * (0.015 + (i % 3) * 0.006), 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
 }
 
 function pigSpriteProfile(kind) {
@@ -1284,149 +1315,6 @@ function pigSpriteProfile(kind) {
     butcherPig: { skin: "#b68a76", cloth: "#4b120d", eye: "rgba(255, 54, 34, 0.98)", scale: 1.38, lashes: false, glasses: false, beard: true, cheeks: false, butcher: true }
   };
   return profiles[kind] || profiles.peppa;
-}
-
-function drawPigFamilyFigure(size, profile, character, time) {
-  const body = ctx.createLinearGradient(-size * 0.38, -size * 0.12, size * 0.42, size * 0.7);
-  body.addColorStop(0, profile.cloth);
-  body.addColorStop(0.58, "#16080a");
-  body.addColorStop(1, "#050202");
-  ctx.fillStyle = body;
-  ctx.beginPath();
-  ctx.moveTo(-size * 0.22, -size * 0.16);
-  ctx.bezierCurveTo(-size * 0.42, size * 0.06, -size * 0.38, size * 0.44, -size * 0.52, size * 0.68);
-  ctx.lineTo(size * 0.5, size * 0.68);
-  ctx.bezierCurveTo(size * 0.36, size * 0.38, size * 0.42, size * 0.06, size * 0.22, -size * 0.16);
-  ctx.closePath();
-  ctx.fill();
-  drawTatteredHem(size * 0.52, size * 0.94, size * 0.16, 10, "rgba(6, 2, 3, 0.95)");
-
-  ctx.strokeStyle = "rgba(120, 8, 8, 0.75)";
-  ctx.lineWidth = Math.max(2, size * 0.024);
-  ctx.beginPath();
-  ctx.moveTo(-size * 0.12, -size * 0.06);
-  ctx.quadraticCurveTo(-size * 0.28, size * 0.2, -size * 0.18, size * 0.46);
-  ctx.moveTo(size * 0.12, -size * 0.02);
-  ctx.quadraticCurveTo(size * 0.24, size * 0.22, size * 0.16, size * 0.54);
-  ctx.stroke();
-
-  ctx.fillStyle = profile.skin;
-  ctx.beginPath();
-  ctx.ellipse(0, -size * 0.43, size * 0.26, size * 0.24, 0, 0, Math.PI * 2);
-  ctx.fill();
-
-  for (const side of [-1, 1]) {
-    ctx.save();
-    ctx.translate(side * size * 0.2, -size * 0.63);
-    ctx.rotate(side * 0.34);
-    ctx.fillStyle = profile.skin;
-    ctx.beginPath();
-    ctx.moveTo(0, -size * 0.12);
-    ctx.quadraticCurveTo(side * size * 0.1, size * 0.02, 0, size * 0.16);
-    ctx.quadraticCurveTo(-side * size * 0.11, size * 0.02, 0, -size * 0.12);
-    ctx.fill();
-    ctx.restore();
-  }
-
-  const snout = ctx.createLinearGradient(-size * 0.13, -size * 0.42, size * 0.14, -size * 0.28);
-  snout.addColorStop(0, "#ffc1ca");
-  snout.addColorStop(1, "#c65f6f");
-  ctx.fillStyle = snout;
-  ctx.beginPath();
-  ctx.ellipse(0, -size * 0.35, size * 0.16, size * 0.09, 0, 0, Math.PI * 2);
-  ctx.fill();
-
-  ctx.fillStyle = "rgba(18, 3, 4, 0.92)";
-  ctx.beginPath();
-  ctx.arc(-size * 0.055, -size * 0.35, Math.max(1.2, size * 0.014), 0, Math.PI * 2);
-  ctx.arc(size * 0.055, -size * 0.35, Math.max(1.2, size * 0.014), 0, Math.PI * 2);
-  ctx.fill();
-
-  drawGlowEyes(-size * 0.09, -size * 0.46, size * 0.09, Math.max(1.5, size * 0.018), profile.eye);
-
-  if (profile.glasses) {
-    ctx.strokeStyle = "rgba(40, 55, 85, 0.92)";
-    ctx.lineWidth = Math.max(1.6, size * 0.015);
-    for (const side of [-1, 1]) {
-      ctx.beginPath();
-      ctx.arc(side * size * 0.09, -size * 0.46, size * 0.055, 0, Math.PI * 2);
-      ctx.stroke();
-    }
-    ctx.beginPath();
-    ctx.moveTo(-size * 0.035, -size * 0.46);
-    ctx.lineTo(size * 0.035, -size * 0.46);
-    ctx.stroke();
-  }
-
-  if (profile.lashes) {
-    ctx.strokeStyle = "rgba(24, 5, 8, 0.88)";
-    ctx.lineWidth = Math.max(1, size * 0.01);
-    for (const side of [-1, 1]) {
-      for (let i = -1; i <= 1; i += 1) {
-        ctx.beginPath();
-        ctx.moveTo(side * size * 0.09, -size * 0.48);
-        ctx.lineTo(side * size * (0.11 + i * 0.01), -size * 0.52 - Math.abs(i) * size * 0.015);
-        ctx.stroke();
-      }
-    }
-  }
-
-  if (profile.beard) {
-    ctx.fillStyle = "rgba(80, 32, 38, 0.48)";
-    for (let i = 0; i < 18; i += 1) {
-      const a = i * 1.7;
-      const rx = Math.cos(a) * size * 0.16;
-      const ry = Math.sin(a * 1.3) * size * 0.07;
-      ctx.beginPath();
-      ctx.arc(rx, -size * 0.28 + ry, Math.max(1, size * 0.006), 0, Math.PI * 2);
-      ctx.fill();
-    }
-  }
-
-  ctx.fillStyle = "rgba(105, 4, 5, 0.86)";
-  ctx.beginPath();
-  ctx.ellipse(-size * 0.1, -size * 0.43, size * 0.08, size * 0.045, -0.45, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.fillRect(size * 0.06, -size * 0.46, size * 0.055, size * 0.24);
-
-  if (profile.butcher) {
-    ctx.fillStyle = "rgba(245, 218, 178, 0.24)";
-    ctx.fillRect(-size * 0.24, -size * 0.1, size * 0.5, size * 0.58);
-    ctx.strokeStyle = "rgba(245, 235, 216, 0.82)";
-    ctx.lineWidth = Math.max(2, size * 0.028);
-    ctx.beginPath();
-    ctx.moveTo(size * 0.32, -size * 0.18);
-    ctx.lineTo(size * 0.58, size * 0.3);
-    ctx.stroke();
-    const blade = ctx.createLinearGradient(size * 0.52, size * 0.36, size * 0.74, -size * 0.1);
-    blade.addColorStop(0, "rgba(110, 110, 105, 0.95)");
-    blade.addColorStop(0.48, "rgba(255, 255, 232, 0.98)");
-    blade.addColorStop(1, "rgba(80, 80, 76, 0.9)");
-    ctx.fillStyle = blade;
-    ctx.beginPath();
-    ctx.moveTo(size * 0.5, size * 0.28);
-    ctx.lineTo(size * 0.72, -size * 0.14);
-    ctx.lineTo(size * 0.82, -size * 0.02);
-    ctx.lineTo(size * 0.6, size * 0.4);
-    ctx.closePath();
-    ctx.fill();
-    ctx.fillStyle = "rgba(135, 0, 0, 0.88)";
-    ctx.beginPath();
-    ctx.ellipse(size * 0.66, size * 0.17, size * 0.04, size * 0.12, 0.35, 0, Math.PI * 2);
-    ctx.fill();
-  }
-
-  if (character.bloodSplatterUntil && performance.now() < character.bloodSplatterUntil) {
-    const spray = (character.bloodSplatterUntil - performance.now()) / 700;
-    ctx.fillStyle = `rgba(142, 0, 0, ${Math.min(0.85, spray)})`;
-    for (let i = 0; i < 9; i += 1) {
-      const angle = time * 0.006 + i * 1.7;
-      const radius = size * (0.18 + (i % 4) * 0.08);
-      ctx.beginPath();
-      ctx.arc(Math.cos(angle) * radius, -size * 0.28 + Math.sin(angle) * radius * 0.55, size * (0.015 + (i % 3) * 0.006), 0, Math.PI * 2);
-      ctx.fill();
-    }
-  }
 }
 
 function drawTatteredHem(y, width, height, points, color) {
@@ -2142,44 +2030,13 @@ function drawDeathClock(width, height, elapsed) {
 function drawDeathCaptor(width, height, elapsed) {
   const z = Math.max(1.15, 5.2 - elapsed * 1.45);
   const p = project3D({ x: Math.sin(elapsed * 1.7) * 0.2, y: 0, z }, 0, width, height);
-  const profile = pigSpriteProfile(state.lastCaptor?.kind);
-  const big = state.lastCaptor?.kind === "daddyPig" || state.lastCaptor?.kind === "grandpaPig";
-  const bodyH = p.scale * (big ? 1.02 : 0.82);
-  const bodyW = p.scale * (big ? 0.34 : 0.27);
-  deathCtx.fillStyle = "rgba(8,4,5,0.88)";
-  deathCtx.beginPath();
-  deathCtx.ellipse(p.x, p.y + bodyH * 0.16, bodyW, bodyH * 0.52, 0, 0, Math.PI * 2);
-  deathCtx.fill();
-
-  deathCtx.fillStyle = profile.skin;
-  for (const side of [-1, 1]) {
-    deathCtx.beginPath();
-    deathCtx.ellipse(p.x + side * bodyW * 0.5, p.y - bodyH * 0.62, bodyW * 0.28, bodyW * 0.46, side * 0.32, 0, Math.PI * 2);
-    deathCtx.fill();
+  const sprite = characterAssetImage(state.lastCaptor?.kind);
+  if (sprite?.loaded) {
+    const bigSprite = state.lastCaptor?.kind === "daddyPig" || state.lastCaptor?.kind === "grandpaPig" || state.lastCaptor?.kind === "butcherPig";
+    const spriteHeight = p.scale * (bigSprite ? 1.42 : 1.08);
+    const spriteWidth = spriteHeight * (sprite.naturalWidth / sprite.naturalHeight);
+    deathCtx.drawImage(sprite, p.x - spriteWidth / 2, p.y - spriteHeight * 0.78, spriteWidth, spriteHeight);
   }
-  deathCtx.beginPath();
-  deathCtx.ellipse(p.x, p.y - bodyH * 0.42, bodyW * 0.82, bodyW * 0.72, 0, 0, Math.PI * 2);
-  deathCtx.fill();
-
-  deathCtx.fillStyle = "#ffc1ca";
-  deathCtx.beginPath();
-  deathCtx.ellipse(p.x, p.y - bodyH * 0.33, bodyW * 0.44, bodyW * 0.24, 0, 0, Math.PI * 2);
-  deathCtx.fill();
-
-  deathCtx.fillStyle = "rgba(95,0,0,0.9)";
-  deathCtx.beginPath();
-  deathCtx.ellipse(p.x - bodyW * 0.24, p.y - bodyH * 0.45, bodyW * 0.22, bodyW * 0.12, -0.35, 0, Math.PI * 2);
-  deathCtx.fill();
-  deathCtx.fillRect(p.x + bodyW * 0.08, p.y - bodyH * 0.47, bodyW * 0.18, bodyH * 0.25);
-
-  deathCtx.globalCompositeOperation = "screen";
-  deathCtx.fillStyle = profile.eye;
-  for (const side of [-1, 1]) {
-    deathCtx.beginPath();
-    deathCtx.arc(p.x + side * bodyW * 0.25, p.y - bodyH * 0.43, Math.max(2, p.scale * 0.018), 0, Math.PI * 2);
-    deathCtx.fill();
-  }
-  deathCtx.globalCompositeOperation = "source-over";
 }
 
 function drawDeathVignette(width, height, elapsed) {
