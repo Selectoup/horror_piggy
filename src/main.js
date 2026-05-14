@@ -24,6 +24,13 @@ const ui = {
     photo: document.querySelector("#slotPhoto"),
     fridge: document.querySelector("#slotFridge"),
     diary: document.querySelector("#slotDiary"),
+    tape: document.querySelector("#slotTape"),
+    greenhouse: document.querySelector("#slotGreenhouse"),
+    ledger: document.querySelector("#slotLedger"),
+    crowbar: document.querySelector("#slotCrowbar"),
+    fuse: document.querySelector("#slotFuse"),
+    musicbox: document.querySelector("#slotMusicbox"),
+    talisman: document.querySelector("#slotTalisman"),
     key: document.querySelector("#slotKey")
   },
   task: document.querySelector("#task"),
@@ -104,27 +111,33 @@ const dust = Array.from({ length: performanceProfile.dustCount }, (_, index) => 
 }));
 
 const rawMap = [
-  "##########D##########",
-  "#.......#...#.......#",
-  "#.......#...#.......#",
-  "#.......#...#.......#",
-  "#.......#...#.......#",
-  "#...................#",
-  "#####.####.####.#####",
-  "#........#.#........#",
-  "#........#.#........#",
-  "#........#.#........#",
-  "#........#.#........#",
-  "##########D##########",
-  "##########.##########",
-  "#........#.#........#",
-  "#........#.#........#",
-  "#........#.#........#",
-  "#........#.#........#",
-  "#####.####.####.#####",
-  "#...................#",
-  "#...................#",
-  "#####################"
+  "#############D#############",
+  "#.......#...#.......#.....#",
+  "#.......#...#.......#.....#",
+  "#.......#...#.......#.....#",
+  "#.......D...D.......#.....#",
+  "#.......#...#.......D.....#",
+  "#####.#####.#####.#########",
+  "#.........#.#.........#...#",
+  "#.........#.#.........#...#",
+  "#.........D.D.........D...#",
+  "#.........#.#.........#...#",
+  "#####.#####D#####.#########",
+  "#.........#.#.........#...#",
+  "#.........#.#.........#...#",
+  "#.........D.D.........#...#",
+  "#.........#.#.........#...#",
+  "#####.#####.#####D#########",
+  "#.....#.........#.........#",
+  "#.....#.........#.........#",
+  "#.....D.........D.........#",
+  "#.....#.........#.........#",
+  "#####.#####D#####.#########",
+  "#.........#.#.........#...#",
+  "#.........#.#.........D...#",
+  "#.........D.D.........#...#",
+  "#.........#.#.........#...#",
+  "###########################"
 ];
 
 const map = rawMap.map((row) => row.split(""));
@@ -137,18 +150,40 @@ const world = {
   }
 };
 
+world.doors = {
+  front: { id: "front", x: 13, y: 0, opened: false, label: "前门", needsKey: true },
+  bedroomHall: { id: "bedroomHall", x: 8, y: 4, opened: false, label: "卧室走廊门" },
+  parlorHall: { id: "parlorHall", x: 12, y: 4, opened: false, label: "餐厅木门" },
+  eastWing: { id: "eastWing", x: 20, y: 5, opened: false, label: "东翼钉死的门", needsTool: "crowbar" },
+  galleryWest: { id: "galleryWest", x: 10, y: 9, opened: false, label: "画廊西门" },
+  galleryEast: { id: "galleryEast", x: 12, y: 9, opened: false, label: "画廊东门" },
+  nursery: { id: "nursery", x: 22, y: 9, opened: false, label: "儿童房门", needsPower: true },
+  basement: { id: "basement", x: 11, y: 11, opened: false, label: "地下室密码门", needsCode: true },
+  archiveWest: { id: "archiveWest", x: 10, y: 14, opened: false, label: "档案室门" },
+  archiveEast: { id: "archiveEast", x: 12, y: 14, opened: false, label: "礼拜间门" },
+  greenhouse: { id: "greenhouse", x: 17, y: 16, opened: false, label: "温室玻璃门", needsPower: true },
+  storage: { id: "storage", x: 6, y: 19, opened: false, label: "工具间铁链门", needsTool: "crowbar" },
+  ritual: { id: "ritual", x: 16, y: 19, opened: false, label: "祭坛门", needsPower: true },
+  boiler: { id: "boiler", x: 11, y: 21, opened: false, label: "锅炉房门" },
+  morgue: { id: "morgue", x: 22, y: 23, opened: false, label: "停尸间门", needsPower: true },
+  cellarWest: { id: "cellarWest", x: 10, y: 24, opened: false, label: "地下西门" },
+  cellarEast: { id: "cellarEast", x: 12, y: 24, opened: false, label: "地下东门" }
+};
+const initialDoorTiles = Object.values(world.doors).map((door) => ({ x: door.x, y: door.y }));
+
 const spawnPoint = {
-  x: 4.55,
+  x: 4.45,
   y: 3.35,
   angle: Math.PI / 2
 };
 const characterSpawns = {
   piglet: { x: 16.5, y: 8.6 },
-  elderPig: { x: 16.4, y: 3.6 },
-  motherPig: { x: 4.7, y: 15.6 },
-  fatherPig: { x: 16.2, y: 18.4 },
+  elderPig: { x: 17.2, y: 3.6 },
+  motherPig: { x: 4.7, y: 14.6 },
+  fatherPig: { x: 18.8, y: 18.6 },
   boarPig: { x: 7.4, y: 9.4 },
-  pigGirl: { x: 14.4, y: 15.4 }
+  pigGirl: { x: 14.4, y: 15.4 },
+  butcherPig: { x: 20.7, y: 24.2 }
 };
 const MAX_DEATHS = 1;
 const CHARACTER_RESPAWN_MS = 10000;
@@ -169,7 +204,8 @@ const difficultySettings = {
       motherPig: "basement",
       fatherPig: "key",
       boarPig: "key",
-      pigGirl: "basement"
+      pigGirl: "basement",
+      butcherPig: "power"
     }
   },
   hard: {
@@ -188,7 +224,8 @@ const difficultySettings = {
       motherPig: "basement",
       fatherPig: "key",
       boarPig: "clue2",
-      pigGirl: "clue1"
+      pigGirl: "clue1",
+      butcherPig: "clue3"
     }
   },
   nightmare: {
@@ -207,7 +244,8 @@ const difficultySettings = {
       motherPig: "start",
       fatherPig: "start",
       boarPig: "start",
-      pigGirl: "clue1"
+      pigGirl: "clue1",
+      butcherPig: "clue2"
     }
   }
 };
@@ -341,6 +379,27 @@ const characters = [
     kind: "peppa",
     glow: "rgba(255, 132, 180, 0.66)",
     pulse: 0
+  },
+  {
+    id: "butcherPig",
+    label: "地下屠夫",
+    x: characterSpawns.butcherPig.x,
+    y: characterSpawns.butcherPig.y,
+    homeX: characterSpawns.butcherPig.x,
+    homeY: characterSpawns.butcherPig.y,
+    speed: 0.92,
+    radius: 1.02,
+    vision: 10.2,
+    catchDistance: 1.12,
+    huntClues: 5,
+    health: 260,
+    maxHealth: 260,
+    roamX: 1.8,
+    roamY: 1.4,
+    kind: "butcherPig",
+    glow: "rgba(255, 38, 26, 0.72)",
+    pulse: 0,
+    prefersNoise: true
   }
 ];
 const enemy = characters[0];
@@ -364,6 +423,13 @@ const state = {
   shotLine: null,
   lastCaptor: null,
   difficulty: "easy",
+  powerOn: false,
+  lockpickCount: 0,
+  talismanCount: 0,
+  usedTalismanAt: 0,
+  noiseTrapAt: 0,
+  noiseTrapPosition: null,
+  solvedRiddle: false,
   deathScene: null,
   deathStartedAt: 0,
   escaped: false,
@@ -375,7 +441,20 @@ const state = {
 
 const keys = new Set();
 const mobileMove = { forward: false, back: false, left: false, right: false };
-const clueOrder = ["photo", "fridge", "diary"];
+const clueOrder = ["photo", "fridge", "diary", "tape", "greenhouse", "ledger"];
+const basementCodeClues = ["photo", "fridge", "diary"];
+const toolSlots = ["crowbar", "fuse", "musicbox"];
+const postPowerClues = ["tape", "greenhouse", "ledger"];
+const hiddenUntilPower = ["tape", "greenhouse", "ledger"];
+const hiddenUntilBasementCode = ["powerbox"];
+const clueLabels = {
+  photo: "旧照片",
+  fridge: "冰箱便签",
+  diary: "摇椅日记",
+  tape: "录音带",
+  greenhouse: "温室血字",
+  ledger: "停尸账本"
+};
 const startupParams = new URLSearchParams(window.location.search);
 const reviewMode = startupParams.get("autostart") === "review" || startupParams.has("review");
 const weapons = {
@@ -383,8 +462,8 @@ const weapons = {
     id: "pistol",
     name: "旧手枪",
     label: "旧手枪",
-    x: 6.2,
-    y: 5.25,
+    x: 6.1,
+    y: 8.7,
     color: "#b8b1a2",
     range: 9.5,
     spread: 0.065,
@@ -399,8 +478,8 @@ const weapons = {
     id: "shotgun",
     name: "短管霰弹枪",
     label: "短管霰弹枪",
-    x: 3.2,
-    y: 15.95,
+    x: 4.2,
+    y: 22.8,
     color: "#8a5a35",
     range: 6.5,
     spread: 0.18,
@@ -415,8 +494,8 @@ const weapons = {
     id: "rifle",
     name: "猎枪",
     label: "猎枪",
-    x: 15.3,
-    y: 8.95,
+    x: 23.7,
+    y: 8.7,
     color: "#6f4a2c",
     range: 13,
     spread: 0.035,
@@ -506,6 +585,101 @@ const objects = [
     message: "钥匙冰得像刚从井里捞出来。前门现在能打开了。"
   }
 ];
+Object.assign(objects.find((obj) => obj.id === "key"), {
+  x: 21.8,
+  y: 23.45,
+  label: "前门钥匙",
+  message: "钥匙被尸体攥得很紧。前门现在能打开了，但屠夫已经听见你了。"
+});
+objects.push(
+  {
+    id: "crowbar",
+    type: "tool",
+    tool: "crowbar",
+    x: 6.2,
+    y: 13.7,
+    radius: 0.24,
+    color: "#caa56d",
+    label: "生锈撬棍",
+    message: "你拿到撬棍。钉死的门和铁链门现在能被撬开。"
+  },
+  {
+    id: "fuse",
+    type: "tool",
+    tool: "fuse",
+    x: 23.25,
+    y: 2.8,
+    radius: 0.24,
+    color: "#76d7ff",
+    label: "蓝色保险丝",
+    message: "保险丝冷得发麻。地下锅炉房的配电箱也许能用上。"
+  },
+  {
+    id: "musicbox",
+    type: "tool",
+    tool: "musicbox",
+    x: 2.55,
+    y: 18.55,
+    radius: 0.24,
+    color: "#e6b1ff",
+    label: "发条玩具",
+    message: "你拿到会自己唱歌的发条玩具。调查地面时可放下诱饵，把怪物引过去。"
+  },
+  {
+    id: "talisman",
+    type: "talisman",
+    x: 14.2,
+    y: 18.5,
+    radius: 0.23,
+    color: "#d8b15f",
+    label: "裂纹护符",
+    message: "护符在你手心碎了一道缝。下次被抓时它会替你挡一次。"
+  },
+  {
+    id: "powerbox",
+    type: "switch",
+    x: 11.4,
+    y: 22.65,
+    radius: 0.34,
+    color: "#61c6b6",
+    label: "锅炉房配电箱",
+    hidden: true,
+    message: "你把保险丝按进配电箱。整栋老宅的灯闪了一下，远处有新的门锁弹开。"
+  },
+  {
+    id: "tape",
+    type: "clue",
+    x: 23.35,
+    y: 8.5,
+    radius: 0.22,
+    color: palette.clue,
+    label: "儿童房录音带",
+    hidden: true,
+    message: "线索四：录音里有孩子倒着数数：七、二、四。原来地下室密码只是第一层锁。"
+  },
+  {
+    id: "greenhouse",
+    type: "clue",
+    x: 22.6,
+    y: 18.45,
+    radius: 0.22,
+    color: palette.clue,
+    label: "温室血字",
+    hidden: true,
+    message: "线索五：玻璃上的血字写着“先让房子醒来，再去找尸体手里的钥匙”。"
+  },
+  {
+    id: "ledger",
+    type: "clue",
+    x: 20.6,
+    y: 24.35,
+    radius: 0.22,
+    color: palette.clue,
+    label: "停尸间账本",
+    hidden: true,
+    message: "线索六：账本夹着钥匙柜编号：右、左、右。柜门下面渗出热气。"
+  }
+);
 const weaponPickups = Object.values(weapons).map((weapon) => ({
   ...weapon,
   type: "weapon",
@@ -682,15 +856,16 @@ function buildFrameLightSources() {
   const sources = [
     { x: spawnPoint.x, y: spawnPoint.y, power: 0.78, radius: 4.2 },
     { x: 10.5, y: 5.5, power: 0.44, radius: 4.8 },
-    { x: 10.5, y: 18.5, power: 0.32, radius: 5.2 },
-    { x: 4.9, y: 2.2, power: state.clues.has("photo") ? 0.08 : 0.75, radius: 3.3 },
-    { x: 16.35, y: 2.55, power: state.clues.has("fridge") ? 0.08 : 0.75, radius: 3.3 },
-    { x: 4.35, y: 8.55, power: state.clues.has("diary") ? 0.08 : 0.75, radius: 3.3 },
-    { x: 16.45, y: 15.85, power: state.hasKey ? 0.08 : 0.95, radius: 3.6 }
+    { x: 10.5, y: 18.5, power: 0.32, radius: 5.2 }
   ];
+  for (const obj of objects) {
+    if (obj.hidden || obj.collected) continue;
+    const basePower = obj.type === "key" ? 0.95 : obj.type === "switch" ? 0.72 : obj.type === "tool" ? 0.58 : obj.type === "talisman" ? 0.62 : 0.75;
+    sources.push({ x: obj.x, y: obj.y, power: basePower, radius: obj.type === "switch" ? 3.9 : 3.2 });
+  }
   for (const character of activeCharacters()) {
-    const power = character.kind === "daddyPig" || character.kind === "grandpaPig" ? 1.08 : 0.86;
-    sources.push({ x: character.x, y: character.y, power, radius: 3.7 });
+    const power = character.kind === "butcherPig" ? 1.26 : character.kind === "daddyPig" || character.kind === "grandpaPig" ? 1.08 : 0.86;
+    sources.push({ x: character.x, y: character.y, power, radius: character.kind === "butcherPig" ? 4.4 : 3.7 });
   }
   return sources;
 }
@@ -1060,7 +1235,7 @@ function drawSprites(depthBuffer, time) {
 
     if (sprite.type === "enemy") {
       drawEnemy(screenX, window.innerHeight / 2 + Math.sin(player.bob) * 7, size, distance, time, sprite);
-    } else if (sprite.type === "clue" || sprite.type === "key" || sprite.type === "weapon") {
+    } else if (sprite.type === "clue" || sprite.type === "key" || sprite.type === "tool" || sprite.type === "talisman" || sprite.type === "switch" || sprite.type === "weapon") {
       drawPickup(screenX, window.innerHeight / 2, size, sprite, time);
     } else {
       drawProp(screenX, window.innerHeight / 2, size, sprite, distance);
@@ -1105,7 +1280,8 @@ function pigSpriteProfile(kind) {
     mummyPig: { skin: "#ff9fb2", cloth: "#f05b95", eye: "rgba(255, 226, 235, 0.98)", scale: 1.06, lashes: true, glasses: false, beard: false, cheeks: true },
     daddyPig: { skin: "#f29aa8", cloth: "#35a8e0", eye: "rgba(202, 240, 255, 0.98)", scale: 1.22, lashes: false, glasses: true, beard: true, cheeks: true },
     grannyPig: { skin: "#f8a8b4", cloth: "#f08b38", eye: "rgba(255, 215, 160, 0.98)", scale: 1.12, lashes: true, glasses: true, beard: false, cheeks: true },
-    peppa: { skin: "#ff9fc0", cloth: "#e83945", eye: "rgba(255, 230, 235, 0.98)", scale: 0.86, lashes: true, glasses: false, beard: false, cheeks: true }
+    peppa: { skin: "#ff9fc0", cloth: "#e83945", eye: "rgba(255, 230, 235, 0.98)", scale: 0.86, lashes: true, glasses: false, beard: false, cheeks: true },
+    butcherPig: { skin: "#b68a76", cloth: "#4b120d", eye: "rgba(255, 54, 34, 0.98)", scale: 1.38, lashes: false, glasses: false, beard: true, cheeks: false, butcher: true }
   };
   return profiles[kind] || profiles.peppa;
 }
@@ -1212,6 +1388,33 @@ function drawPigFamilyFigure(size, profile, character, time) {
   ctx.ellipse(-size * 0.1, -size * 0.43, size * 0.08, size * 0.045, -0.45, 0, Math.PI * 2);
   ctx.fill();
   ctx.fillRect(size * 0.06, -size * 0.46, size * 0.055, size * 0.24);
+
+  if (profile.butcher) {
+    ctx.fillStyle = "rgba(245, 218, 178, 0.24)";
+    ctx.fillRect(-size * 0.24, -size * 0.1, size * 0.5, size * 0.58);
+    ctx.strokeStyle = "rgba(245, 235, 216, 0.82)";
+    ctx.lineWidth = Math.max(2, size * 0.028);
+    ctx.beginPath();
+    ctx.moveTo(size * 0.32, -size * 0.18);
+    ctx.lineTo(size * 0.58, size * 0.3);
+    ctx.stroke();
+    const blade = ctx.createLinearGradient(size * 0.52, size * 0.36, size * 0.74, -size * 0.1);
+    blade.addColorStop(0, "rgba(110, 110, 105, 0.95)");
+    blade.addColorStop(0.48, "rgba(255, 255, 232, 0.98)");
+    blade.addColorStop(1, "rgba(80, 80, 76, 0.9)");
+    ctx.fillStyle = blade;
+    ctx.beginPath();
+    ctx.moveTo(size * 0.5, size * 0.28);
+    ctx.lineTo(size * 0.72, -size * 0.14);
+    ctx.lineTo(size * 0.82, -size * 0.02);
+    ctx.lineTo(size * 0.6, size * 0.4);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = "rgba(135, 0, 0, 0.88)";
+    ctx.beginPath();
+    ctx.ellipse(size * 0.66, size * 0.17, size * 0.04, size * 0.12, 0.35, 0, Math.PI * 2);
+    ctx.fill();
+  }
 
   if (character.bloodSplatterUntil && performance.now() < character.bloodSplatterUntil) {
     const spray = (character.bloodSplatterUntil - performance.now()) / 700;
@@ -1486,6 +1689,7 @@ function drawMirrorFigure(size, time) {
 
 function drawPickup(x, horizon, size, sprite, time) {
   const pulse = 0.75 + Math.sin(time * 0.006 + sprite.x) * 0.18;
+  const color = sprite.color || (sprite.type === "key" ? palette.key : palette.clue);
   ctx.save();
   ctx.translate(x, horizon + Math.sin(time * 0.004 + sprite.y) * 10);
   ctx.fillStyle = "rgba(0, 0, 0, 0.38)";
@@ -1493,7 +1697,7 @@ function drawPickup(x, horizon, size, sprite, time) {
   ctx.ellipse(0, size * 0.52, size * 0.42, size * 0.12, 0, 0, Math.PI * 2);
   ctx.fill();
   ctx.globalCompositeOperation = "lighter";
-  ctx.fillStyle = sprite.type === "key" ? `rgba(255, 194, 62, ${0.22 + pulse * 0.2})` : `rgba(255, 219, 108, ${0.18 + pulse * 0.16})`;
+  ctx.fillStyle = hexGlow(color, sprite.type === "key" ? 0.22 + pulse * 0.2 : 0.18 + pulse * 0.16);
   ctx.beginPath();
   ctx.arc(0, 0, size * 0.65, 0, Math.PI * 2);
   ctx.fill();
@@ -1515,6 +1719,76 @@ function drawPickup(x, horizon, size, sprite, time) {
     ctx.stroke();
     ctx.fillStyle = "rgba(255, 240, 190, 0.78)";
     ctx.fillRect(size * 0.3, -size * 0.12, size * 0.18, Math.max(2, size * 0.035));
+  } else if (sprite.type === "tool") {
+    ctx.shadowColor = hexGlow(color, 0.8);
+    ctx.shadowBlur = size * 0.2;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = Math.max(3, size * 0.07);
+    ctx.lineCap = "round";
+    if (sprite.tool === "crowbar") {
+      ctx.beginPath();
+      ctx.moveTo(-size * 0.36, size * 0.26);
+      ctx.lineTo(size * 0.34, -size * 0.28);
+      ctx.quadraticCurveTo(size * 0.5, -size * 0.36, size * 0.42, -size * 0.12);
+      ctx.stroke();
+    } else if (sprite.tool === "fuse") {
+      ctx.fillStyle = "#16313a";
+      roundRect(-size * 0.28, -size * 0.18, size * 0.56, size * 0.36, size * 0.08);
+      ctx.fill();
+      ctx.strokeStyle = color;
+      ctx.stroke();
+      ctx.fillStyle = color;
+      ctx.fillRect(-size * 0.42, -size * 0.05, size * 0.14, size * 0.1);
+      ctx.fillRect(size * 0.28, -size * 0.05, size * 0.14, size * 0.1);
+    } else {
+      ctx.fillStyle = "#3b2448";
+      roundRect(-size * 0.24, -size * 0.18, size * 0.48, size * 0.36, size * 0.08);
+      ctx.fill();
+      ctx.strokeStyle = color;
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(0, -size * 0.02, size * 0.18, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(size * 0.2, -size * 0.22, size * 0.06, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  } else if (sprite.type === "talisman") {
+    ctx.shadowColor = hexGlow(color, 0.85);
+    ctx.shadowBlur = size * 0.24;
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    for (let i = 0; i < 6; i += 1) {
+      const angle = -Math.PI / 2 + i * Math.PI / 3;
+      const radius = i % 2 === 0 ? size * 0.28 : size * 0.2;
+      const px = Math.cos(angle) * radius;
+      const py = Math.sin(angle) * radius;
+      if (i === 0) ctx.moveTo(px, py);
+      else ctx.lineTo(px, py);
+    }
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = "#3d2314";
+    ctx.lineWidth = Math.max(1, size * 0.035);
+    ctx.beginPath();
+    ctx.moveTo(-size * 0.08, -size * 0.16);
+    ctx.lineTo(size * 0.04, -size * 0.02);
+    ctx.lineTo(-size * 0.02, size * 0.16);
+    ctx.stroke();
+  } else if (sprite.type === "switch") {
+    ctx.shadowColor = hexGlow(color, 0.85);
+    ctx.shadowBlur = size * 0.22;
+    ctx.fillStyle = "#182d2a";
+    roundRect(-size * 0.34, -size * 0.26, size * 0.68, size * 0.52, size * 0.08);
+    ctx.fill();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = Math.max(2, size * 0.045);
+    ctx.stroke();
+    ctx.fillStyle = color;
+    ctx.fillRect(-size * 0.2, -size * 0.04, size * 0.4, size * 0.08);
+    ctx.fillStyle = "#101817";
+    ctx.fillRect(-size * 0.04, -size * 0.19, size * 0.08, size * 0.38);
   } else if (sprite.type === "key") {
     ctx.shadowColor = "rgba(255, 210, 96, 0.75)";
     ctx.shadowBlur = size * 0.25;
@@ -1530,9 +1804,9 @@ function drawPickup(x, horizon, size, sprite, time) {
     ctx.lineTo(size * 0.5, size * 0.14);
     ctx.stroke();
   } else {
-    ctx.shadowColor = "rgba(255, 220, 120, 0.65)";
+    ctx.shadowColor = hexGlow(color, 0.65);
     ctx.shadowBlur = size * 0.18;
-    ctx.fillStyle = palette.clue;
+    ctx.fillStyle = color;
     ctx.fillRect(-size * 0.28, -size * 0.18, size * 0.56, size * 0.36);
     ctx.fillStyle = "#6e2020";
     ctx.fillRect(-size * 0.18, -size * 0.04, size * 0.28, Math.max(2, size * 0.035));
@@ -1541,6 +1815,16 @@ function drawPickup(x, horizon, size, sprite, time) {
     ctx.fill();
   }
   ctx.restore();
+}
+
+function hexGlow(hex, alpha) {
+  const value = String(hex || "#ffd568").replace("#", "");
+  const full = value.length === 3 ? value.split("").map((part) => part + part).join("") : value.padEnd(6, "0").slice(0, 6);
+  const number = Number.parseInt(full, 16);
+  const red = (number >> 16) & 255;
+  const green = (number >> 8) & 255;
+  const blue = number & 255;
+  return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
 }
 
 function drawProp(x, horizon, size, prop, distance) {
@@ -1630,10 +1914,17 @@ function drawMinimap() {
 
   for (const obj of objects) {
     if (obj.hidden || obj.collected) continue;
-    ctx.fillStyle = obj.type === "key" ? palette.key : palette.clue;
+    ctx.fillStyle = obj.color || (obj.type === "key" ? palette.key : palette.clue);
     ctx.beginPath();
-    ctx.arc(x + obj.x * scale, y + obj.y * scale, 2.2, 0, Math.PI * 2);
-    ctx.fill();
+    if (obj.type === "switch") {
+      ctx.rect(x + obj.x * scale - 2.8, y + obj.y * scale - 2.1, 5.6, 4.2);
+      ctx.fill();
+    } else if (obj.type === "tool") {
+      ctx.fillRect(x + obj.x * scale - 2.7, y + obj.y * scale - 1.2, 5.4, 2.4);
+    } else {
+      ctx.arc(x + obj.x * scale, y + obj.y * scale, obj.type === "talisman" ? 2.6 : 2.2, 0, Math.PI * 2);
+      ctx.fill();
+    }
   }
 
   for (const weapon of weaponPickups) {
@@ -1645,7 +1936,7 @@ function drawMinimap() {
   for (const character of activeCharacters()) {
     ctx.fillStyle = pigSpriteProfile(character.kind).skin;
     ctx.beginPath();
-    ctx.arc(x + character.x * scale, y + character.y * scale, character.kind === "george" || character.kind === "peppa" ? 2.1 : 2.7, 0, Math.PI * 2);
+    ctx.arc(x + character.x * scale, y + character.y * scale, character.kind === "butcherPig" ? 3.2 : character.kind === "george" || character.kind === "peppa" ? 2.1 : 2.7, 0, Math.PI * 2);
     ctx.fill();
   }
 
@@ -1977,12 +2268,14 @@ function moveActorToStart() {
 
 function characterIsActive(character) {
   if (character.deadUntil && performance.now() < character.deadUntil) return false;
+  if (character.id === "butcherPig" && !state.powerOn && !state.hasKey) return false;
   const rule = currentDifficulty().active[character.id] || "start";
   if (rule === "start") return true;
   if (rule === "clue1") return state.clues.size >= 1 || state.hasKey;
   if (rule === "clue2") return state.clues.size >= 2 || state.hasKey;
   if (rule === "clue3") return state.clues.size >= 3 || state.hasKey;
   if (rule === "basement") return world.doors.basement.opened || state.hasKey;
+  if (rule === "power") return state.powerOn || state.hasKey;
   if (rule === "key") return state.hasKey;
   return state.clues.size >= character.huntClues || state.hasKey;
 }
@@ -2015,6 +2308,16 @@ function resetCharactersToHome() {
 }
 
 function handleCapture(captor = enemy) {
+  if (state.talismanCount > 0) {
+    state.talismanCount -= 1;
+    state.usedTalismanAt = performance.now();
+    state.captureCooldown = 4.2;
+    state.scare = 0.88;
+    stunCharacter(captor, { stun: 3.2, knockback: 2.4, range: 4 }, distanceTo(captor.x, captor.y));
+    showMessage("裂纹护符替你挡下了那只手。它碎成灰，怪物被震退了。", 2600);
+    updateUi();
+    return;
+  }
   state.deaths += 1;
   state.scare = 0.95;
   state.lastCaptor = captor;
@@ -2228,11 +2531,16 @@ function updateCharacter(character, delta, time) {
   const dy = player.y - character.y;
   const distance = Math.hypot(dx, dy);
   const seesPlayer = state.captureCooldown <= 0 && hasLineOfSight(character.x, character.y, player.x, player.y) && distance < character.vision * difficulty.vision;
-  const hunt = seesPlayer || state.hasKey || state.clues.size >= character.huntClues;
-  const pathTarget = hunt && !seesPlayer ? cachedPathTarget(character, player.x, player.y, time) : null;
+  const noiseActive = state.noiseTrapPosition && performance.now() < state.noiseTrapAt;
+  const noiseDistance = noiseActive ? Math.hypot(character.x - state.noiseTrapPosition.x, character.y - state.noiseTrapPosition.y) : Infinity;
+  const hearsNoise = noiseActive && noiseDistance < (character.prefersNoise ? 18 : 12);
+  const hunt = seesPlayer || hearsNoise || state.hasKey || state.clues.size >= character.huntClues;
+  const chaseX = hearsNoise && !seesPlayer ? state.noiseTrapPosition.x : player.x;
+  const chaseY = hearsNoise && !seesPlayer ? state.noiseTrapPosition.y : player.y;
+  const pathTarget = hunt && !seesPlayer && !hearsNoise ? cachedPathTarget(character, player.x, player.y, time) : null;
   const phase = time * 0.00042 + characters.indexOf(character) * 1.37;
-  const targetX = seesPlayer ? player.x : pathTarget?.x ?? character.homeX + Math.sin(phase) * character.roamX;
-  const targetY = seesPlayer ? player.y : pathTarget?.y ?? character.homeY + Math.cos(phase * 0.9) * character.roamY;
+  const targetX = seesPlayer || hearsNoise ? chaseX : pathTarget?.x ?? character.homeX + Math.sin(phase) * character.roamX;
+  const targetY = seesPlayer || hearsNoise ? chaseY : pathTarget?.y ?? character.homeY + Math.cos(phase * 0.9) * character.roamY;
   const tx = targetX - character.x;
   const ty = targetY - character.y;
   const len = Math.hypot(tx, ty);
@@ -2295,6 +2603,16 @@ function updateTarget() {
   for (const weapon of weaponPickups) {
     if (!weapon.collected) candidates.push(weapon);
   }
+  if (hasTool("musicbox") && performance.now() > state.noiseTrapAt) {
+    candidates.push({
+      id: "noiseTrap",
+      type: "trap",
+      x: player.x + forwardX * 0.85,
+      y: player.y + forwardY * 0.85,
+      radius: 0.35,
+      label: "放下诱饵"
+    });
+  }
 
   for (const door of Object.values(world.doors)) {
     if (door.opened && door.id !== "front") continue;
@@ -2338,22 +2656,51 @@ function interact() {
     target.collected = true;
     state.clues.add(target.id);
     showMessage(target.message);
-    if (state.clues.size === 3) {
-      revealKey();
-    }
+    revealProgression();
     updateTarget();
     return;
   }
 
   if (target.type === "key") {
-    if (state.clues.size < 3) {
-      showMessage("钥匙盒上有三位密码。线索还没找齐。");
+    if (!state.powerOn || !state.clues.has("ledger")) {
+      showMessage("尸体的手指像锁一样扣住钥匙。也许停尸间账本能告诉你怎么拿。");
+      return;
+    }
+    if (!postPowerClues.every((id) => state.clues.has(id))) {
+      showMessage("钥匙柜上刻着三枚符号。录音带、温室血字和账本需要全部对上。");
       return;
     }
     target.collected = true;
     state.hasKey = true;
     showMessage(target.message);
+    state.scare = Math.max(state.scare, 0.45);
     updateTarget();
+    return;
+  }
+
+  if (target.type === "tool") {
+    target.collected = true;
+    collectTool(target);
+    updateTarget();
+    return;
+  }
+
+  if (target.type === "talisman") {
+    target.collected = true;
+    state.talismanCount += 1;
+    showMessage(target.message);
+    updateTarget();
+    updateUi();
+    return;
+  }
+
+  if (target.type === "switch") {
+    useSwitch(target);
+    return;
+  }
+
+  if (target.type === "trap") {
+    placeNoiseTrap();
     return;
   }
 
@@ -2372,7 +2719,15 @@ function interact() {
       endGame(true);
       return;
     }
-    if (door.needsCode && state.clues.size < 3) {
+    if (door.needsTool && !hasTool(door.needsTool)) {
+      showMessage(door.needsTool === "crowbar" ? "门被木板钉死。你需要撬棍。" : "门锁被奇怪的工具卡住了。");
+      return;
+    }
+    if (door.needsPower && !state.powerOn) {
+      showMessage("电子锁没有电。地下锅炉房的配电箱也许还能救活它。");
+      return;
+    }
+    if (door.needsCode && !basementCodeClues.every((id) => state.clues.has(id))) {
       showMessage("地下室门锁要三位密码。墙上有刮痕：先找完三条线索。");
       return;
     }
@@ -2385,26 +2740,103 @@ function interact() {
 function revealKey() {
   const key = objects.find((obj) => obj.id === "key");
   key.hidden = false;
-  showMessage("三条线索拼出了密码 427。地下室里的钥匙盒亮了。", 4300);
+  showMessage("六条线索拼成了完整仪式。停尸间尸体手里的钥匙松动了。", 4300);
+}
+
+function collectTool(target) {
+  showMessage(target.message);
+  updateUi();
+}
+
+function hasTool(tool) {
+  return objects.some((obj) => obj.type === "tool" && obj.tool === tool && obj.collected);
+}
+
+function useSwitch(target) {
+  if (!hasTool("fuse")) {
+    showMessage("配电箱里少了一枚蓝色保险丝。电闸旁边有烧焦的儿童手印。");
+    return;
+  }
+  if (state.powerOn) {
+    showMessage("配电箱已经恢复供电。墙里传来很轻的刮擦声。", 1600);
+    return;
+  }
+  state.powerOn = true;
+  target.collected = true;
+  revealProgression();
+  showMessage(target.message, 5200);
+  state.scare = Math.max(state.scare, 0.55);
+  updateTarget();
+  updateUi();
+}
+
+function placeNoiseTrap() {
+  if (!hasTool("musicbox")) {
+    showMessage("你还没有能制造声响的东西。");
+    return;
+  }
+  const forwardX = Math.cos(player.angle);
+  const forwardY = Math.sin(player.angle);
+  const point = nearestOpenPoint(player.x + forwardX * 1.2, player.y + forwardY * 1.2);
+  state.noiseTrapPosition = point;
+  state.noiseTrapAt = performance.now() + 7200;
+  state.scare = Math.max(state.scare, 0.2);
+  showMessage("发条玩具开始唱走调的童谣。附近的东西会被声音吸过去。", 2400);
+}
+
+function revealProgression() {
+  const basementReady = basementCodeClues.every((id) => state.clues.has(id));
+  const powerbox = objects.find((obj) => obj.id === "powerbox");
+  if (basementReady && powerbox?.hidden) {
+    powerbox.hidden = false;
+    showMessage("三条线索拼出了密码 427。地下楼梯深处的配电箱亮了一下。", 4300);
+  }
+  if (state.powerOn) {
+    for (const id of hiddenUntilPower) {
+      const clue = objects.find((obj) => obj.id === id);
+      if (clue) clue.hidden = false;
+    }
+  }
+  const key = objects.find((obj) => obj.id === "key");
+  if (key && state.powerOn && postPowerClues.every((id) => state.clues.has(id))) {
+    const wasHidden = key.hidden;
+    key.hidden = false;
+    if (wasHidden) showMessage("录音、血字和账本对上了。停尸间钥匙柜传来一声咔哒。", 4200);
+  }
 }
 
 function updateUi() {
-  ui.clueCount.textContent = `${state.clues.size} / 3`;
-  ui.keyState.textContent = state.hasKey ? "已取得" : "未取得";
+  const collectedClues = state.clues.size;
   const weapon = activeWeapon();
   if (ui.weaponState) ui.weaponState.textContent = weapon ? `${weapon.name} ∞` : "无";
   if (ui.fire) ui.fire.classList.toggle("has-weapon", Boolean(weapon));
   if (ui.deathState) ui.deathState.textContent = `${state.deaths} / ${MAX_DEATHS}`;
-  ui.progressFill.style.width = `${(state.clues.size / 3) * 100}%`;
   ui.staminaFill.style.width = `${Math.round(player.stamina * 100)}%`;
   ui.staminaText.textContent = `${Math.round(player.stamina * 100)}%`;
   ui.staminaFill.style.background =
     player.stamina < 0.22 ? "linear-gradient(90deg, #ff5d7c, #f5c75d)" : "linear-gradient(90deg, #61c6b6, #8bb3ff)";
 
-  for (const clueId of clueOrder) {
-    ui.slots[clueId].classList.toggle("is-filled", state.clues.has(clueId));
+  ui.clueCount.textContent = `${collectedClues} / ${clueOrder.length}`;
+  ui.progressFill.style.width = `${(collectedClues / clueOrder.length) * 100}%`;
+  ui.keyState.textContent = state.hasKey ? "已取得" : objects.find((obj) => obj.id === "key")?.hidden === false ? "可取得" : state.powerOn ? "追踪中" : "未通电";
+  if (ui.weaponState && !weapon) {
+    const tools = [
+      hasTool("crowbar") ? "撬棍" : null,
+      hasTool("fuse") ? "保险丝" : null,
+      hasTool("musicbox") ? "诱饵" : null,
+      state.talismanCount > 0 ? `护符${state.talismanCount}` : null
+    ].filter(Boolean);
+    ui.weaponState.textContent = tools.join(" / ") || "无";
   }
-  ui.slots.key.classList.toggle("is-filled", state.hasKey);
+
+  for (const clueId of clueOrder) {
+    ui.slots[clueId]?.classList.toggle("is-filled", state.clues.has(clueId));
+  }
+  for (const slot of toolSlots) {
+    ui.slots[slot]?.classList.toggle("is-filled", hasTool(slot));
+  }
+  ui.slots.talisman?.classList.toggle("is-filled", state.talismanCount > 0);
+  ui.slots.key?.classList.toggle("is-filled", state.hasKey);
 
   const nearest = nearestCharacter();
   const distance = nearest?.distance ?? Infinity;
@@ -2425,9 +2857,15 @@ function updateUi() {
   document.body.classList.toggle("danger-near", dangerLevel === "near");
   document.body.classList.toggle("danger-close", dangerLevel === "close");
 
-  if (state.clues.size < 3) ui.task.textContent = `从卧室、厨房和客厅里寻找发光线索。还差 ${3 - state.clues.size} 条。`;
+  const missingBasementClues = basementCodeClues.filter((id) => !state.clues.has(id));
+  const missingFinalClues = postPowerClues.filter((id) => !state.clues.has(id));
+  if (missingBasementClues.length) ui.task.textContent = `先找三条密码线索：还差 ${missingBasementClues.map((id) => clueLabels[id]).join("、")}。`;
   else if (!world.doors.basement.opened) ui.task.textContent = "密码已拼出：427。去中间走廊打开地下室门。";
-  else if (!state.hasKey) ui.task.textContent = "地下室已开启。找到钥匙柜，拿到前门钥匙。";
+  else if (!hasTool("crowbar")) ui.task.textContent = "地下室开了。先找撬棍，撬开东翼和工具间的封门。";
+  else if (!hasTool("fuse")) ui.task.textContent = "用撬棍探索东翼，找到蓝色保险丝。";
+  else if (!state.powerOn) ui.task.textContent = "带保险丝去锅炉房配电箱，把老宅的电恢复。";
+  else if (missingFinalClues.length) ui.task.textContent = `通电后新房间醒了。还差 ${missingFinalClues.map((id) => clueLabels[id]).join("、")}。`;
+  else if (!state.hasKey) ui.task.textContent = "六条线索对上了。去停尸间尸体手里拿前门钥匙。";
   else ui.task.textContent = "钥匙到手。回到玄关，从前门逃出去。";
 
   if (performance.now() > state.messageUntil) {
@@ -2700,7 +3138,7 @@ function startGame() {
   state.ended = false;
   state.captureCooldown = currentDifficulty().startGrace;
   canvas.requestPointerLock?.();
-  showMessage(`你在破旧卧室里醒来。${currentDifficulty().label}：鼠标可上下抬头，死亡一次就会触发结局。`);
+  showMessage(`你在破旧卧室里醒来。${currentDifficulty().label}：找齐六条线索，利用撬棍、保险丝和诱饵逃出去。`);
 }
 
 function resetGame() {
@@ -2713,6 +3151,13 @@ function resetGame() {
   state.scare = 0;
   state.deaths = 0;
   state.captureCooldown = 0;
+  state.powerOn = false;
+  state.lockpickCount = 0;
+  state.talismanCount = 0;
+  state.usedTalismanAt = 0;
+  state.noiseTrapAt = 0;
+  state.noiseTrapPosition = null;
+  state.solvedRiddle = false;
   state.lastCaptor = null;
   state.deathScene = null;
   state.deathStartedAt = 0;
@@ -2727,15 +3172,15 @@ function resetGame() {
   resetCharactersToHome();
   for (const obj of objects) {
     obj.collected = false;
-    if (obj.id === "key") obj.hidden = true;
+    if (obj.id === "key" || hiddenUntilPower.includes(obj.id) || hiddenUntilBasementCode.includes(obj.id)) obj.hidden = true;
   }
   for (const weapon of weaponPickups) {
     weapon.collected = false;
   }
-  world.doors.front.opened = false;
-  world.doors.basement.opened = false;
-  map[0][10] = "D";
-  map[11][10] = "D";
+  for (const door of Object.values(world.doors)) {
+    door.opened = false;
+    map[door.y][door.x] = "D";
+  }
   ui.end.classList.remove("is-active");
   ui.end.classList.remove("is-death", "is-escape", ...deathEndings.map((ending) => ending.className));
   ui.title.classList.add("is-active");
@@ -2947,7 +3392,7 @@ if (startupParams.has("autostart")) {
       startGame();
       if (startupParams.has("showenemy") || startupParams.get("autostart") === "showenemy" || reviewMode) {
         player.x = reviewMode ? 10.4 : 4.55;
-        player.y = reviewMode ? 27.2 : 3.35;
+        player.y = reviewMode ? 24.2 : 3.35;
         player.angle = reviewMode ? -Math.PI / 2 : Math.PI / 2;
         player.pitch = reviewMode ? 0.08 : -0.04;
         characters.forEach((character, index) => {

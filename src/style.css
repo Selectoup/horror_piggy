@@ -539,7 +539,7 @@ body.danger-close .signalDot {
 
 .inventory {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(6, 1fr);
   gap: 8px;
   margin-top: 12px;
 }
@@ -564,12 +564,60 @@ body.danger-close .signalDot {
   background: rgba(255, 255, 255, 0.12);
 }
 
-.slot:nth-child(1) span,
-.slot:nth-child(2) span,
-.slot:nth-child(3) span {
+.slot:nth-child(-n + 6) span {
   background:
     linear-gradient(135deg, transparent 0 42%, rgba(100, 27, 30, 0.9) 43% 50%, transparent 51%),
     #e9d7aa;
+}
+
+.tapeSlot span {
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(9, 8, 10, 0.98) 0 24%, transparent 25%),
+    radial-gradient(circle, #b28fff 0 56%, #2a1638 57% 100%);
+}
+
+.greenhouseSlot span {
+  background:
+    linear-gradient(135deg, transparent 0 42%, rgba(128, 0, 0, 0.96) 43% 50%, transparent 51%),
+    linear-gradient(135deg, rgba(107, 229, 168, 0.75), rgba(26, 72, 54, 0.82));
+}
+
+.ledgerSlot span {
+  background:
+    linear-gradient(90deg, rgba(248, 225, 170, 0.86) 0 48%, rgba(92, 50, 30, 0.8) 49% 53%, rgba(248, 225, 170, 0.72) 54%),
+    #5c321e;
+}
+
+.toolSlot span {
+  inset: 14px 9px;
+  border-radius: 999px;
+}
+
+.crowbarSlot span {
+  transform: rotate(-32deg);
+  background: #caa56d;
+}
+
+.fuseSlot span {
+  border: 2px solid #76d7ff;
+  background: #16313a;
+  box-shadow: inset 9px 0 0 rgba(118, 215, 255, 0.5), inset -9px 0 0 rgba(118, 215, 255, 0.5);
+}
+
+.musicboxSlot span {
+  inset: 10px;
+  border: 2px solid #e6b1ff;
+  border-radius: 8px;
+  background:
+    radial-gradient(circle at 50% 50%, transparent 0 28%, #e6b1ff 29% 36%, transparent 37%),
+    #3b2448;
+}
+
+.talismanSlot span {
+  inset: 11px;
+  clip-path: polygon(50% 0, 72% 28%, 100% 50%, 72% 72%, 50% 100%, 28% 72%, 0 50%, 28% 28%);
+  background: #d8b15f;
 }
 
 .keySlot span {

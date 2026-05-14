@@ -535,7 +535,7 @@
 
   function addPickups() {
     for (const obj of runtime.config.objects) {
-      const group = obj.type === "key" ? createKey() : createClue(obj);
+      const group = createObjectPickup(obj);
       runtime.meshes.objects.set(obj.id, group);
       runtime.groups.dynamic.add(group);
     }
@@ -544,6 +544,14 @@
       runtime.meshes.weapons.set(weapon.id, group);
       runtime.groups.dynamic.add(group);
     }
+  }
+
+  function createObjectPickup(obj) {
+    if (obj.type === "key") return createKey();
+    if (obj.type === "tool") return createToolPickup(obj);
+    if (obj.type === "talisman") return createTalismanPickup(obj);
+    if (obj.type === "switch") return createSwitchPickup(obj);
+    return createClue(obj);
   }
 
   function createClue(obj) {
@@ -557,6 +565,61 @@
       const light = new THREE.PointLight(0xffd568, 0.8, 2.8, 2);
       group.add(light);
     }
+    return group;
+  }
+
+  function createToolPickup(obj) {
+    const group = new THREE.Group();
+    const material = standard(obj.color || "#caa56d", 0.42, 0.5, obj.color || "#caa56d", 0.16);
+    if (obj.tool === "crowbar") {
+      const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.82, 14), material);
+      shaft.rotation.set(0.45, 0.12, Math.PI / 2.7);
+      shaft.castShadow = true;
+      const hook = new THREE.Mesh(new THREE.TorusGeometry(0.13, 0.026, 8, 24, Math.PI * 1.2), material);
+      hook.rotation.set(Math.PI / 2, 0.2, -0.35);
+      hook.position.set(0.32, 0.08, -0.1);
+      group.add(shaft, hook);
+    } else if (obj.tool === "fuse") {
+      const body = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.42, 18), material);
+      body.rotation.z = Math.PI / 2;
+      const capA = box(0.08, 0.13, 0.13, runtime.materials.metal, -0.24, 0, 0);
+      const capB = box(0.08, 0.13, 0.13, runtime.materials.metal, 0.24, 0, 0);
+      group.add(body, capA, capB);
+    } else {
+      const caseMat = standard("#3b2448", 0.12, 0.58, "#e6b1ff", 0.12);
+      const boxMesh = box(0.38, 0.26, 0.32, caseMat, 0, 0, 0);
+      const wheel = new THREE.Mesh(new THREE.TorusGeometry(0.1, 0.015, 8, 24), material);
+      wheel.rotation.x = Math.PI / 2;
+      wheel.position.set(0, 0.16, 0.18);
+      const crank = box(0.16, 0.025, 0.025, material, 0.22, 0.16, 0.18);
+      group.add(boxMesh, wheel, crank);
+    }
+    if (runtime.quality.dynamicLights) group.add(new THREE.PointLight(obj.color || "#caa56d", 0.8, 2.8, 2));
+    return group;
+  }
+
+  function createTalismanPickup(obj) {
+    const group = new THREE.Group();
+    const material = standard(obj.color || "#d8b15f", 0.18, 0.48, obj.color || "#d8b15f", 0.42);
+    const gem = new THREE.Mesh(new THREE.OctahedronGeometry(0.2, 0), material);
+    gem.rotation.z = Math.PI / 4;
+    const crack = box(0.025, 0.36, 0.018, runtime.materials.black, 0.03, 0.01, 0.2);
+    crack.rotation.z = -0.32;
+    group.add(gem, crack);
+    if (runtime.quality.dynamicLights) group.add(new THREE.PointLight(obj.color || "#d8b15f", 0.7, 2.6, 2));
+    return group;
+  }
+
+  function createSwitchPickup(obj) {
+    const group = new THREE.Group();
+    group.userData.staticPickup = true;
+    const panel = box(0.46, 0.56, 0.1, standard("#16312c", 0.34, 0.64, obj.color || "#61c6b6", 0.16), 0, 0, 0);
+    const lever = box(0.08, 0.42, 0.06, runtime.materials.metal, 0, 0.02, 0.09);
+    lever.rotation.z = -0.22;
+    const light = new THREE.Mesh(new THREE.SphereGeometry(0.045, 12, 8), standard(obj.color || "#61c6b6", 0.04, 0.32, obj.color || "#61c6b6", 1.3));
+    light.position.set(0.14, 0.18, 0.12);
+    group.add(panel, lever, light);
+    if (runtime.quality.dynamicLights) group.add(new THREE.PointLight(obj.color || "#61c6b6", 0.9, 3, 2));
     return group;
   }
 
@@ -896,6 +959,26 @@
   }
 
   function addCharacterAccessory(group, pig, lineMat, headY) {
+    if (pig.assetKey === "butcherPig") {
+      const apronMat = cartoonMaterial("#ead8c0", "#3d0b08", 0.06);
+      const apron = box(pig.radius * 0.82, pig.radius * 1.15, 0.024, apronMat, 0.02, 0.78, 0.68);
+      apron.rotation.z = -0.03;
+      apron.renderOrder = 15;
+      group.add(apron);
+      const handleMat = cartoonMaterial("#2b1810", "#080302", 0);
+      const bladeMat = standard("#d7d4c8", 0.72, 0.28, "#f7e7c8", 0.08);
+      const handle = box(0.08, 0.42, 0.06, handleMat, pig.radius * 1.28, 0.58, 0.62);
+      handle.rotation.z = -0.52;
+      handle.renderOrder = 16;
+      const blade = new THREE.Mesh(new THREE.ConeGeometry(0.13, 0.42, 4), bladeMat);
+      blade.position.set(pig.radius * 1.45, 0.84, 0.64);
+      blade.rotation.set(0, 0, -0.52);
+      blade.scale.set(0.72, 1.25, 0.16);
+      blade.renderOrder = 16;
+      group.add(handle, blade);
+      return;
+    }
+
     if (pig.assetKey === "george") {
       const toyMat = cartoonMaterial("#5d3f2d", "#1c0d08", 0.04);
       const bear = new THREE.Mesh(new THREE.SphereGeometry(pig.head * 0.095, 18, 10), toyMat);
@@ -1089,7 +1172,8 @@
       mummyPig: { assetKey: "mummyPig", skin: "#ff9fb2", cloth: "#f05b95", dress: "#f06a2f", height: 1.28, radius: 0.32, head: 0.38, headY: 0.42, light: 0xff77aa, glasses: false, lashes: true, beard: false, cheek: "#ef5b7a", bodyTop: 0.7, bodyBottom: 1.18, bodyDepth: 0.5, headScaleX: 1.42, headScaleY: 1.03, headDepth: 0.37, faceZ: 0.19, cardWidth: 1.43, cardHeight: 2.64 },
       daddyPig: { assetKey: "daddyPig", skin: "#f29aa8", cloth: "#35a8e0", dress: "#31a7ad", height: 1.5, radius: 0.42, head: 0.47, headY: 0.42, light: 0x66d0ff, glasses: true, lashes: false, beard: true, cheek: "#dc526b", bodyTop: 0.9, bodyBottom: 1.24, bodyDepth: 0.58, headScaleX: 1.46, headScaleY: 1.02, headDepth: 0.42, faceZ: 0.23, cardWidth: 1.68, cardHeight: 2.82, bodyRound: true },
       grannyPig: { assetKey: "grannyPig", skin: "#f8a8b4", cloth: "#f08b38", dress: "#e85b80", height: 1.33, radius: 0.34, head: 0.39, headY: 0.42, light: 0xffaa57, glasses: true, lashes: true, beard: false, cheek: "#eb6076", bodyTop: 0.76, bodyBottom: 1.14, bodyDepth: 0.5, headScaleX: 1.42, headScaleY: 1.04, headDepth: 0.37, faceZ: 0.19, cardWidth: 1.44, cardHeight: 2.81 },
-      peppa: { assetKey: "peppa", skin: "#ff9fc0", cloth: "#e83945", dress: "#e83845", height: 0.96, radius: 0.27, head: 0.34, headY: 0.4, light: 0xff5c76, glasses: false, lashes: true, beard: false, cheek: "#ff5f82", bodyTop: 0.68, bodyBottom: 1.12, bodyDepth: 0.48, headScaleX: 1.43, headScaleY: 1.03, headDepth: 0.36, faceZ: 0.17, cardWidth: 1.08, cardHeight: 2.48 }
+      peppa: { assetKey: "peppa", skin: "#ff9fc0", cloth: "#e83945", dress: "#e83845", height: 0.96, radius: 0.27, head: 0.34, headY: 0.4, light: 0xff5c76, glasses: false, lashes: true, beard: false, cheek: "#ff5f82", bodyTop: 0.68, bodyBottom: 1.12, bodyDepth: 0.48, headScaleX: 1.43, headScaleY: 1.03, headDepth: 0.36, faceZ: 0.17, cardWidth: 1.08, cardHeight: 2.48 },
+      butcherPig: { assetKey: "butcherPig", skin: "#b68a76", cloth: "#4b120d", dress: "#4b120d", height: 1.68, radius: 0.49, head: 0.51, headY: 0.43, light: 0xff2416, glasses: false, lashes: false, beard: true, cheek: "#7a160f", bodyTop: 0.92, bodyBottom: 1.28, bodyDepth: 0.64, headScaleX: 1.5, headScaleY: 1.04, headDepth: 0.45, faceZ: 0.25, cardWidth: 1.88, cardHeight: 3.08, bodyRound: true }
     };
     return profiles[character.kind] || profiles.peppa;
   }
@@ -1290,9 +1374,15 @@
       const group = runtime.meshes.objects.get(obj.id);
       if (!group) continue;
       group.visible = !obj.hidden && !obj.collected;
-      const p = toWorld(obj.x, obj.y, 0.62 + Math.sin(elapsed * 2.5 + obj.x) * 0.08);
+      const bob = group.userData.staticPickup ? 0 : Math.sin(elapsed * 2.5 + obj.x) * 0.08;
+      const height = obj.type === "switch" ? 1.05 : obj.type === "tool" ? 0.5 : 0.62;
+      const p = toWorld(obj.x, obj.y, height + bob);
       group.position.copy(p);
-      group.rotation.y = elapsed * 0.7 + obj.x;
+      if (obj.type === "switch") {
+        group.rotation.y = -Math.PI / 2;
+      } else {
+        group.rotation.y = elapsed * 0.7 + obj.x;
+      }
     }
   }
 
@@ -1341,12 +1431,14 @@
   function characterIsActive(character) {
     if (character.deadUntil && performance.now() < character.deadUntil) return false;
     const state = runtime.config.state;
+    if (character.id === "butcherPig" && !state.powerOn && !state.hasKey) return false;
     const rule = (runtime.config.difficultySettings?.[state.difficulty] || {}).active?.[character.id] || "start";
     if (rule === "start") return true;
     if (rule === "clue1") return state.clues.size >= 1 || state.hasKey;
     if (rule === "clue2") return state.clues.size >= 2 || state.hasKey;
     if (rule === "clue3") return state.clues.size >= 3 || state.hasKey;
     if (rule === "basement") return runtime.config.world.doors.basement.opened || state.hasKey;
+    if (rule === "power") return state.powerOn || state.hasKey;
     if (rule === "key") return state.hasKey;
     return state.clues.size >= character.huntClues || state.hasKey;
   }
