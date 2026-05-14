@@ -64,6 +64,27 @@ body.has-webgl #game {
   opacity: 0;
 }
 
+body.perf-lite .grain,
+body.perf-lite .scanline {
+  display: none;
+}
+
+body.perf-lite .vignette {
+  background: radial-gradient(circle at 50% 46%, transparent 0 42%, rgba(0, 0, 0, 0.52) 78%, rgba(0, 0, 0, 0.86) 100%);
+}
+
+body.perf-lite .titlePanel,
+body.perf-lite .hudGlass,
+body.perf-lite .mobileControls,
+body.perf-lite .interactButton,
+body.perf-lite .fireButton {
+  backdrop-filter: none;
+}
+
+body.perf-lite #crosshair {
+  box-shadow: none;
+}
+
 body.review-mode .dangerWash,
 body.review-mode .vignette,
 body.review-mode .grain,

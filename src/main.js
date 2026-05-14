@@ -2,6 +2,8 @@ const canvas = document.querySelector("#game");
 const ctx = canvas.getContext("2d", { alpha: false });
 const deathCanvas = document.querySelector("#deathCanvas");
 const deathCtx = deathCanvas?.getContext("2d", { alpha: true });
+const performanceProfile = createPerformanceProfile();
+document.body.classList.toggle("perf-lite", performanceProfile.lite);
 
 const ui = {
   title: document.querySelector("#titleScreen"),
@@ -34,9 +36,27 @@ const ui = {
   endText: document.querySelector("#endText")
 };
 
+function createPerformanceProfile() {
+  const params = new URLSearchParams(window.location.search);
+  const forced = (params.get("quality") || params.get("perf") || "").toLowerCase();
+  const mobile = window.matchMedia?.("(pointer: coarse)")?.matches || Math.min(window.innerWidth, window.innerHeight) < 760;
+  const cores = navigator.hardwareConcurrency || 4;
+  const memory = navigator.deviceMemory || 4;
+  const saveData = Boolean(navigator.connection?.saveData);
+  const autoLow = saveData || mobile || cores <= 4 || memory <= 4 || window.devicePixelRatio > 1.6;
+  const quality = ["low", "medium", "high"].includes(forced) ? forced : autoLow ? "low" : "medium";
+  const profiles = {
+    low: { canvasScale: 1, deathScale: 1, raysPerPixel: 4, rayStep: 0.055, dustCount: 24, lite: true },
+    medium: { canvasScale: 1.2, deathScale: 1.15, raysPerPixel: 3, rayStep: 0.042, dustCount: 46, lite: true },
+    high: { canvasScale: 1.6, deathScale: 1.5, raysPerPixel: 2, rayStep: 0.025, dustCount: 90, lite: false }
+  };
+  return { quality, ...profiles[quality] };
+}
+
 const TILE = 1;
 const FOV = Math.PI / 3.15;
-const RAYS_PER_PIXEL = 2;
+const RAYS_PER_PIXEL = performanceProfile.raysPerPixel;
+const RAY_STEP = performanceProfile.rayStep;
 const MAX_DEPTH = 18;
 const INTERACTION_DISTANCE = 1.55;
 
@@ -64,6 +84,9 @@ const texturePatterns = {
   floor: null,
   basement: null
 };
+let frameLightSources = [];
+let nextTargetUpdate = 0;
+let nextUiUpdate = 0;
 
 const textureRegions = {
   wallpaper: { col: 0, row: 0 },
@@ -72,7 +95,7 @@ const textureRegions = {
   basement: { col: 1, row: 1 }
 };
 
-const dust = Array.from({ length: 90 }, (_, index) => ({
+const dust = Array.from({ length: performanceProfile.dustCount }, (_, index) => ({
   seed: index * 19.37,
   x: (index * 73) % 997,
   y: (index * 137) % 991,
@@ -508,7 +531,7 @@ const props = [
 ];
 
 function resize() {
-  const scale = Math.min(window.devicePixelRatio || 1, 2);
+  const scale = Math.min(window.devicePixelRatio || 1, performanceProfile.canvasScale);
   canvas.width = Math.floor(window.innerWidth * scale);
   canvas.height = Math.floor(window.innerHeight * scale);
   canvas.style.width = `${window.innerWidth}px`;
@@ -516,11 +539,12 @@ function resize() {
   ctx.setTransform(scale, 0, 0, scale, 0, 0);
 
   if (deathCanvas && deathCtx) {
-    deathCanvas.width = Math.floor(window.innerWidth * scale);
-    deathCanvas.height = Math.floor(window.innerHeight * scale);
+    const deathScale = Math.min(window.devicePixelRatio || 1, performanceProfile.deathScale);
+    deathCanvas.width = Math.floor(window.innerWidth * deathScale);
+    deathCanvas.height = Math.floor(window.innerHeight * deathScale);
     deathCanvas.style.width = `${window.innerWidth}px`;
     deathCanvas.style.height = `${window.innerHeight}px`;
-    deathCtx.setTransform(scale, 0, 0, scale, 0, 0);
+    deathCtx.setTransform(deathScale, 0, 0, deathScale, 0, 0);
   }
 }
 
@@ -604,7 +628,7 @@ function castRay(angle) {
   let side = 0;
 
   while (distance < MAX_DEPTH) {
-    distance += 0.025;
+    distance += RAY_STEP;
     hitX = player.x + cos * distance;
     hitY = player.y + sin * distance;
     tile = tileAt(hitX, hitY);
@@ -645,6 +669,16 @@ function textureColumn(hit, corrected, wallHeight, screenX, screenY, shade, rayW
 
 function worldLightAt(x, y, distance) {
   let light = Math.max(0, 1 - distance / MAX_DEPTH) * 0.35;
+  const sources = frameLightSources;
+  if (!sources.length) return light;
+  for (const source of sources) {
+    const d = Math.hypot(x - source.x, y - source.y);
+    if (d < source.radius) light += (1 - d / source.radius) * source.power;
+  }
+  return Math.min(1, light);
+}
+
+function buildFrameLightSources() {
   const sources = [
     { x: spawnPoint.x, y: spawnPoint.y, power: 0.78, radius: 4.2 },
     { x: 10.5, y: 5.5, power: 0.44, radius: 4.8 },
@@ -658,11 +692,7 @@ function worldLightAt(x, y, distance) {
     const power = character.kind === "daddyPig" || character.kind === "grandpaPig" ? 1.08 : 0.86;
     sources.push({ x: character.x, y: character.y, power, radius: 3.7 });
   }
-  for (const source of sources) {
-    const d = Math.hypot(x - source.x, y - source.y);
-    if (d < source.radius) light += (1 - d / source.radius) * source.power;
-  }
-  return Math.min(1, light);
+  return sources;
 }
 
 function drawScene(time) {
@@ -674,6 +704,7 @@ function drawScene(time) {
   const shakeX = Math.sin(time * 0.07) * shake;
   const shakeY = Math.cos(time * 0.051) * shake * 0.55;
   const flicker = 0.92 + Math.sin(time * 0.009) * 0.04 + Math.sin(time * 0.027) * 0.025;
+  frameLightSources = buildFrameLightSources();
 
   ctx.save();
   ctx.translate(shakeX, shakeY);
@@ -769,13 +800,14 @@ function drawTexturedFloor(width, height, horizon, time) {
   ctx.fillStyle = shadow;
   ctx.fillRect(-24, horizon, width + 48, height - horizon + 24);
 
-  drawFloorStains(width, height, horizon, time);
+  if (!performanceProfile.lite) drawFloorStains(width, height, horizon, time);
 }
 
 function drawCeiling(width, horizon, time) {
   ctx.save();
   const pulse = 0.4 + Math.sin(time * 0.003) * 0.08;
-  for (let i = 0; i < 9; i += 1) {
+  const beamCount = performanceProfile.lite ? 4 : 9;
+  for (let i = 0; i < beamCount; i += 1) {
     const y = horizon - i * 34 - 18;
     const alpha = Math.max(0, 0.14 - i * 0.012);
     ctx.fillStyle = `rgba(190, 155, 96, ${alpha * pulse})`;
@@ -791,6 +823,7 @@ function drawCeiling(width, horizon, time) {
 }
 
 function drawWallScratches(x, y, wallHeight, hit, shade, time) {
+  if (performanceProfile.lite) return;
   const patternSeed = Math.floor(hit.hitX * 11 + hit.hitY * 17);
   if (patternSeed % 9 === 0) {
     ctx.fillStyle = `rgba(28, 16, 8, ${0.18 * shade})`;
@@ -824,11 +857,15 @@ function drawFloorStains(width, height, horizon, time) {
 function drawAtmosphere(width, height, time) {
   ctx.save();
   ctx.globalCompositeOperation = "screen";
-  const lamp = ctx.createRadialGradient(width * 0.52, height * 0.42, 10, width * 0.52, height * 0.42, width * 0.62);
-  lamp.addColorStop(0, "rgba(255, 202, 126, 0.11)");
-  lamp.addColorStop(0.45, "rgba(120, 96, 64, 0.055)");
-  lamp.addColorStop(1, "rgba(0, 0, 0, 0)");
-  ctx.fillStyle = lamp;
+  if (performanceProfile.lite) {
+    ctx.fillStyle = "rgba(120, 96, 64, 0.035)";
+  } else {
+    const lamp = ctx.createRadialGradient(width * 0.52, height * 0.42, 10, width * 0.52, height * 0.42, width * 0.62);
+    lamp.addColorStop(0, "rgba(255, 202, 126, 0.11)");
+    lamp.addColorStop(0.45, "rgba(120, 96, 64, 0.055)");
+    lamp.addColorStop(1, "rgba(0, 0, 0, 0)");
+    ctx.fillStyle = lamp;
+  }
   ctx.fillRect(0, 0, width, height);
 
   const nearest = nearestCharacter();
@@ -861,19 +898,23 @@ function drawFlashlight(width, height, time) {
   ctx.globalCompositeOperation = "screen";
   const jitterX = Math.sin(time * 0.006) * 10 + Math.sin(time * 0.021) * 4;
   const jitterY = Math.cos(time * 0.005) * 6;
-  const beam = ctx.createRadialGradient(
-    width * 0.5 + jitterX,
-    height * 0.48 + jitterY,
-    18,
-    width * 0.5 + jitterX,
-    height * 0.5 + jitterY,
-    Math.max(width, height) * 0.54
-  );
-  beam.addColorStop(0, "rgba(255, 232, 198, 0.24)");
-  beam.addColorStop(0.28, "rgba(255, 190, 130, 0.095)");
-  beam.addColorStop(0.62, "rgba(140, 112, 76, 0.04)");
-  beam.addColorStop(1, "rgba(0,0,0,0)");
-  ctx.fillStyle = beam;
+  if (performanceProfile.lite) {
+    ctx.fillStyle = "rgba(255, 232, 198, 0.055)";
+  } else {
+    const beam = ctx.createRadialGradient(
+      width * 0.5 + jitterX,
+      height * 0.48 + jitterY,
+      18,
+      width * 0.5 + jitterX,
+      height * 0.5 + jitterY,
+      Math.max(width, height) * 0.54
+    );
+    beam.addColorStop(0, "rgba(255, 232, 198, 0.24)");
+    beam.addColorStop(0.28, "rgba(255, 190, 130, 0.095)");
+    beam.addColorStop(0.62, "rgba(140, 112, 76, 0.04)");
+    beam.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = beam;
+  }
   ctx.fillRect(0, 0, width, height);
   ctx.restore();
 }
@@ -1908,8 +1949,14 @@ function update(delta, time) {
   }
 
   updateEnemy(delta, time);
-  updateTarget();
-  updateUi();
+  if (time >= nextTargetUpdate) {
+    updateTarget();
+    nextTargetUpdate = time + 90;
+  }
+  if (time >= nextUiUpdate) {
+    updateUi();
+    nextUiUpdate = time + 110;
+  }
   state.scare = Math.max(0, state.scare - delta * 1.8);
 }
 
@@ -1963,6 +2010,7 @@ function resetCharactersToHome() {
     character.health = character.maxHealth;
     character.bloodSplatterUntil = 0;
     character.deathFall = 0;
+    character.pathCache = null;
   }
 }
 
@@ -2181,7 +2229,7 @@ function updateCharacter(character, delta, time) {
   const distance = Math.hypot(dx, dy);
   const seesPlayer = state.captureCooldown <= 0 && hasLineOfSight(character.x, character.y, player.x, player.y) && distance < character.vision * difficulty.vision;
   const hunt = seesPlayer || state.hasKey || state.clues.size >= character.huntClues;
-  const pathTarget = hunt && !seesPlayer ? findNextStepTowards(character.x, character.y, player.x, player.y) : null;
+  const pathTarget = hunt && !seesPlayer ? cachedPathTarget(character, player.x, player.y, time) : null;
   const phase = time * 0.00042 + characters.indexOf(character) * 1.37;
   const targetX = seesPlayer ? player.x : pathTarget?.x ?? character.homeX + Math.sin(phase) * character.roamX;
   const targetY = seesPlayer ? player.y : pathTarget?.y ?? character.homeY + Math.cos(phase * 0.9) * character.roamY;
@@ -2203,6 +2251,20 @@ function updateCharacter(character, delta, time) {
   } else if (distance < 2.4) {
     state.scare = Math.max(state.scare, 0.18);
   }
+}
+
+function cachedPathTarget(character, targetX, targetY, time) {
+  const targetCell = `${Math.floor(targetX)},${Math.floor(targetY)}`;
+  const cache = character.pathCache;
+  if (!cache || cache.targetCell !== targetCell || time >= cache.expiresAt) {
+    const jitter = ((character.id?.length || 1) * 29) % 120;
+    character.pathCache = {
+      targetCell,
+      expiresAt: time + 240 + jitter,
+      point: findNextStepTowards(character.x, character.y, targetX, targetY)
+    };
+  }
+  return character.pathCache.point;
 }
 
 function hasLineOfSight(ax, ay, bx, by) {

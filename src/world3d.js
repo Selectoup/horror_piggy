@@ -3,9 +3,11 @@
   const WALL_HEIGHT = 2.85;
   const CAMERA_HEIGHT = 1.56;
   const ATLAS_SRC = "src/assets/world-atlas.png";
+  const params = new URLSearchParams(window.location.search);
   const runtime = {
     ready: false,
     config: null,
+    quality: null,
     renderer: null,
     scene: null,
     camera: null,
@@ -24,6 +26,7 @@
     shotLine: null,
     muzzleLight: null,
     lastShotUntil: 0,
+    lastRenderAt: 0,
     swayingLights: [],
     assetRevision: "geometry-horror-pig-family-v2"
   };
@@ -32,6 +35,8 @@
     if (!window.THREE) return false;
     const canvas = document.querySelector("#world3d");
     if (!canvas) return false;
+    runtime.quality = createQualityProfile();
+    if (runtime.quality.mode === "2d") return false;
 
     runtime.config = config;
     runtime.scene = new THREE.Scene();
@@ -41,13 +46,13 @@
     runtime.camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.03, 140);
     runtime.renderer = new THREE.WebGLRenderer({
       canvas,
-      antialias: true,
+      antialias: runtime.quality.antialias,
       alpha: false,
       powerPreference: "high-performance"
     });
-    runtime.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
+    runtime.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, runtime.quality.pixelRatio));
     runtime.renderer.setSize(window.innerWidth, window.innerHeight, false);
-    runtime.renderer.shadowMap.enabled = true;
+    runtime.renderer.shadowMap.enabled = runtime.quality.shadows;
     runtime.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     if (THREE.sRGBEncoding) runtime.renderer.outputEncoding = THREE.sRGBEncoding;
 
@@ -63,6 +68,23 @@
     document.body.classList.add("has-webgl");
     runtime.ready = true;
     return true;
+  }
+
+  function createQualityProfile() {
+    const forced = (params.get("quality") || params.get("perf") || "").toLowerCase();
+    if (forced === "2d" || forced === "canvas") return { mode: "2d" };
+    const mobile = window.matchMedia?.("(pointer: coarse)")?.matches || Math.min(window.innerWidth, window.innerHeight) < 760;
+    const cores = navigator.hardwareConcurrency || 4;
+    const memory = navigator.deviceMemory || 4;
+    const saveData = Boolean(navigator.connection?.saveData);
+    const autoLow = saveData || mobile || cores <= 4 || memory <= 4 || window.devicePixelRatio > 1.6;
+    const mode = ["low", "medium", "high"].includes(forced) ? forced : autoLow ? "low" : "medium";
+    const profiles = {
+      low: { mode, pixelRatio: 1, antialias: false, shadows: false, dynamicLights: false, animatedSetDressing: false, textureSize: 256, anisotropy: 1, extraDressing: false, maxBloodDrops: 6, frameInterval: 1000 / 30 },
+      medium: { mode, pixelRatio: 1.2, antialias: false, shadows: false, dynamicLights: false, animatedSetDressing: true, textureSize: 384, anisotropy: 2, extraDressing: true, maxBloodDrops: 10, frameInterval: 1000 / 45 },
+      high: { mode, pixelRatio: 1.6, antialias: true, shadows: true, dynamicLights: true, animatedSetDressing: true, textureSize: 512, anisotropy: 8, extraDressing: true, maxBloodDrops: 24, frameInterval: 0 }
+    };
+    return profiles[mode];
   }
 
   function createFallbackMaterials() {
@@ -126,15 +148,15 @@
   function makeTileTexture(image, col, row, repeatX, repeatY) {
     const source = Math.floor(Math.min(image.width, image.height) / 2);
     const canvas = document.createElement("canvas");
-    canvas.width = 512;
-    canvas.height = 512;
+    canvas.width = runtime.quality.textureSize;
+    canvas.height = runtime.quality.textureSize;
     const c = canvas.getContext("2d");
     c.drawImage(image, col * source, row * source, source, source, 0, 0, canvas.width, canvas.height);
     const texture = new THREE.CanvasTexture(canvas);
     texture.wrapS = THREE.RepeatWrapping;
     texture.wrapT = THREE.RepeatWrapping;
     texture.repeat.set(repeatX, repeatY);
-    texture.anisotropy = Math.min(8, runtime.renderer.capabilities.getMaxAnisotropy());
+    texture.anisotropy = Math.min(runtime.quality.anisotropy, runtime.renderer.capabilities.getMaxAnisotropy());
     if (THREE.sRGBEncoding) texture.encoding = THREE.sRGBEncoding;
     return texture;
   }
@@ -157,7 +179,7 @@
 
     const moon = new THREE.DirectionalLight(0x8fa7d8, 0.32);
     moon.position.set(-12, 18, 11);
-    moon.castShadow = true;
+    moon.castShadow = runtime.quality.shadows;
     moon.shadow.mapSize.set(1024, 1024);
     runtime.scene.add(moon);
 
@@ -176,10 +198,13 @@
 
   function addPointLight(x, y, color, intensity, distance) {
     const point = toWorld(x, y, 1.9);
-    const light = new THREE.PointLight(color, intensity, distance, 1.75);
-    light.position.copy(point);
-    light.castShadow = true;
-    runtime.scene.add(light);
+    let light = null;
+    if (runtime.quality.dynamicLights) {
+      light = new THREE.PointLight(color, intensity, distance, 1.75);
+      light.position.copy(point);
+      light.castShadow = false;
+      runtime.scene.add(light);
+    }
 
     const flame = new THREE.Mesh(new THREE.SphereGeometry(0.06, 12, 8), runtime.materials.glowGold);
     flame.position.copy(point);
@@ -411,6 +436,8 @@
       addDraggedMarks(x + 0.15, y + 0.2, scale);
     }
 
+    if (!runtime.quality.extraDressing) return;
+
     const hanging = [
       [5.4, 6.1],
       [10.5, 10.8],
@@ -526,8 +553,10 @@
     const paper = box(0.55, 0.035, 0.38, runtime.materials.paper, 0, 0, 0);
     paper.rotation.y = 0.5;
     group.add(paper);
-    const light = new THREE.PointLight(0xffd568, 0.8, 2.8, 2);
-    group.add(light);
+    if (runtime.quality.dynamicLights) {
+      const light = new THREE.PointLight(0xffd568, 0.8, 2.8, 2);
+      group.add(light);
+    }
     return group;
   }
 
@@ -538,7 +567,7 @@
     const shaft = box(0.34, 0.045, 0.045, runtime.materials.key, 0.22, 0, 0);
     const tooth = box(0.07, 0.12, 0.045, runtime.materials.key, 0.38, -0.035, 0);
     group.add(ring, shaft, tooth);
-    group.add(new THREE.PointLight(0xffc451, 1.2, 3, 2));
+    if (runtime.quality.dynamicLights) group.add(new THREE.PointLight(0xffc451, 1.2, 3, 2));
     return group;
   }
 
@@ -552,8 +581,10 @@
       emissiveIntensity: 0.08
     });
     buildGunModel(group, weapon, mat, 0.62);
-    const glow = new THREE.PointLight(weapon.flash, 0.65, 2.6, 2);
-    group.add(glow);
+    if (runtime.quality.dynamicLights) {
+      const glow = new THREE.PointLight(weapon.flash, 0.65, 2.6, 2);
+      group.add(glow);
+    }
     return group;
   }
 
@@ -609,12 +640,14 @@
     shadow.position.set(0, 0.015, 0.05);
     shadow.scale.set(1.4, 0.55, 1);
     group.add(shadow);
-    const aura = new THREE.PointLight(pig.light, 2.45, 6.8, 2);
-    aura.position.set(0, 1.3, 0.35);
-    group.add(aura);
-    const faceLight = new THREE.PointLight(0xffd7d7, 1.15, 3.2, 2);
-    faceLight.position.set(0, 1.55, 0.9);
-    group.add(faceLight);
+    if (runtime.quality.dynamicLights) {
+      const aura = new THREE.PointLight(pig.light, 2.45, 6.8, 2);
+      aura.position.set(0, 1.3, 0.35);
+      group.add(aura);
+      const faceLight = new THREE.PointLight(0xffd7d7, 1.15, 3.2, 2);
+      faceLight.position.set(0, 1.55, 0.9);
+      group.add(faceLight);
+    }
     return group;
   }
 
@@ -1092,7 +1125,8 @@
     pool.userData.baseOpacity = poolMaterial.opacity;
     group.add(pool);
 
-    for (let i = 0; i < burstCount; i += 1) {
+    const drops = Math.min(burstCount, runtime.quality.maxBloodDrops);
+    for (let i = 0; i < drops; i += 1) {
       const size = (fatal ? 0.036 : 0.026) + Math.random() * (fatal ? 0.055 : 0.038);
       const material = makeBloodMaterial(0.72 + Math.random() * 0.24);
       const drop = new THREE.Mesh(new THREE.SphereGeometry(size, 8, 6), material);
@@ -1211,6 +1245,8 @@
     updateHeldWeapon(state, elapsed);
     updateShotLine(state, player, elapsed);
 
+    if (runtime.quality.frameInterval && time - runtime.lastRenderAt < runtime.quality.frameInterval) return true;
+    runtime.lastRenderAt = time;
     runtime.renderer.render(runtime.scene, runtime.camera);
     return true;
   }
@@ -1219,17 +1255,24 @@
     const pulse = 0.86 + Math.sin(elapsed * 3.7) * 0.08 + Math.sin(elapsed * 13.1) * 0.035;
     for (const item of runtime.swayingLights) {
       const sway = Math.sin(elapsed * 1.6 + item.phase) * 0.08;
-      item.light.position.set(item.base.x + sway, item.base.y + Math.sin(elapsed * 2.1 + item.phase) * 0.035, item.base.z);
-      item.flame.position.copy(item.light.position);
-      item.light.intensity = item.intensity * pulse;
-      item.flame.scale.setScalar(0.85 + Math.sin(elapsed * 9 + item.phase) * 0.18);
+      const y = item.base.y + Math.sin(elapsed * 2.1 + item.phase) * 0.035;
+      if (item.light) {
+        item.light.position.set(item.base.x + sway, y, item.base.z);
+        item.light.intensity = item.intensity * pulse;
+        item.flame.position.copy(item.light.position);
+      } else {
+        item.flame.position.set(item.base.x + sway, y, item.base.z);
+      }
+      item.flame.scale.setScalar(runtime.quality.animatedSetDressing ? 0.85 + Math.sin(elapsed * 9 + item.phase) * 0.18 : 0.92);
     }
 
-    runtime.groups.world.children.forEach((child) => {
-      if (!child.userData.phase || !child.material?.transparent) return;
-      child.material.opacity = 0.22 + Math.sin(elapsed * 0.9 + child.userData.phase) * 0.08;
-      child.rotation.z += 0.0015;
-    });
+    if (runtime.quality.animatedSetDressing) {
+      runtime.groups.world.children.forEach((child) => {
+        if (!child.userData.phase || !child.material?.transparent) return;
+        child.material.opacity = 0.22 + Math.sin(elapsed * 0.9 + child.userData.phase) * 0.08;
+        child.rotation.z += 0.0015;
+      });
+    }
 
     runtime.scene.fog.density = 0.048 + (state.scare || 0) * 0.035;
   }
@@ -1353,8 +1396,8 @@
   function box(w, h, d, material, x = 0, y = 0, z = 0) {
     const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), material);
     mesh.position.set(x, y, z);
-    mesh.castShadow = true;
-    mesh.receiveShadow = true;
+    mesh.castShadow = runtime.quality.shadows;
+    mesh.receiveShadow = runtime.quality.shadows;
     return mesh;
   }
 
